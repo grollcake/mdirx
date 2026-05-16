@@ -38,4 +38,7 @@
 
 ## 목록
 
-*(아직 없음)*
+- [xcode-spm/swift6-strict-concurrency-default.md](xcode-spm/swift6-strict-concurrency-default.md) — Swift 6 + strict concurrency 를 초기부터 켜도 SwiftUI placeholder 는 추가 표기 없이 무경고
+- [xcode-spm/xcodeproj-empty-subdirs-not-tracked.md](xcode-spm/xcodeproj-empty-subdirs-not-tracked.md) — 빈 `xcshareddata/`·`project.xcworkspace/` 미추적 → share scheme 누락으로 다른 머신 빌드 깨질 수 있음
+- [macos-sandbox/hardened-runtime-adhoc-sign-note.md](macos-sandbox/hardened-runtime-adhoc-sign-note.md) — `Disabling hardened runtime with ad-hoc codesigning` note 는 정상, Hardened Runtime ON 통과 조건 위반 아님
+- [git-ci/gitignore-xcodeproj-pitfall.md](git-ci/gitignore-xcodeproj-pitfall.md) — `.gitignore` 의 `*.xcodeproj` 는 네이티브 Xcode 프로젝트 저장소에서 반드시 제거
