@@ -21,7 +21,32 @@ struct DualPaneView: View {
             )
             .frame(maxWidth: .infinity)
 
-            Divider()
+            ZStack(alignment: .top) {
+                Rectangle()
+                    .fill(FileColorToken.neutralBackground)
+                VStack(spacing: 2) {
+                    Button {
+                        Task { await session.syncLeftToRight() }
+                    } label: {
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 10))
+                            .foregroundStyle(Color.white.opacity(0.6))
+                            .frame(width: 20, height: 20)
+                    }
+                    .buttonStyle(.plain)
+                    Button {
+                        Task { await session.syncRightToLeft() }
+                    } label: {
+                        Image(systemName: "arrow.left")
+                            .font(.system(size: 10))
+                            .foregroundStyle(Color.white.opacity(0.6))
+                            .frame(width: 20, height: 20)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.top, 5)
+            }
+            .frame(width: 20)
 
             PaneColumnView(
                 state: session.right,

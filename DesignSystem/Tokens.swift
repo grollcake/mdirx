@@ -15,6 +15,7 @@ enum FileColorToken {
     static let markedBackground = Color(.sRGB, red: 0.31, green: 0.14, blue: 0.14, opacity: 1.0)
 
     static let panelBackground = Color(white: 0.07)
+    static let neutralBackground = Color(white: 0.15)
 
     static func color(for entry: DirectoryEntry) -> Color {
         if entry.isDirectory { return folder }

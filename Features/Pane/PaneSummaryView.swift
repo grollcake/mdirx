@@ -54,7 +54,8 @@ struct PaneSummaryView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(height: 24)
             .padding(.leading, 12)
-            .overlay(alignment: .bottom) {
+            .background(FileColorToken.neutralBackground)
+        .overlay(alignment: .bottom) {
                 Rectangle()
                     .fill(Color.white.opacity(0.05))
                     .frame(height: 1)

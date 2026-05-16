@@ -20,7 +20,6 @@ struct FileListView: View {
                 GeometryReader { proxy in
                     let layout = FileListLayout.available(in: proxy.size.width)
                     VStack(spacing: 0) {
-                        FileListHeader(layout: layout)
                         ScrollView {
                             LazyVStack(spacing: 0) {
                                 ForEach(state.paneRows) { row in
@@ -59,7 +58,6 @@ private struct FileListLayout {
     static let rowHeight: CGFloat = 20
 
     let selectionMarkerWidth: CGFloat = 12
-    let markerWidth: CGFloat = 24
     let iconWidth: CGFloat = 14
     let extWidth: CGFloat = 52
     let sizeWidth: CGFloat = 56
@@ -70,9 +68,9 @@ private struct FileListLayout {
     let descriptionWidth: CGFloat
 
     static func available(in totalWidth: CGFloat) -> FileListLayout {
-        // fixed = 12+24+14+52+56+70+36+36 = 300, spacing = 9*8 = 72
-        let fixed: CGFloat = 300
-        let spacing: CGFloat = 72
+        // fixed = 12+14+52+56+70+36+36 = 276, spacing = 8*8 = 64
+        let fixed: CGFloat = 276
+        let spacing: CGFloat = 64
         let forFlexible = max(0, totalWidth - outerPadding * 2 - fixed - spacing)
         return FileListLayout(
             nameWidth: max(90, forFlexible * 0.75),
@@ -87,7 +85,6 @@ private struct FileListHeader: View {
     var body: some View {
         HStack(spacing: 8) {
             Text("").frame(width: layout.selectionMarkerWidth, alignment: .center)
-            Text("#").frame(width: layout.markerWidth, alignment: .trailing)
             Text("").frame(width: layout.iconWidth, alignment: .center)
             Text("Name").frame(width: layout.nameWidth, alignment: .leading)
             Text("Ext").frame(width: layout.extWidth, alignment: .leading)
@@ -128,11 +125,6 @@ private struct FileListRow: View {
                 .font(.system(size: 11).monospaced())
                 .foregroundStyle(.yellow)
                 .frame(width: layout.selectionMarkerWidth, alignment: .center)
-
-            Text("\(row.rowNumber)")
-                .font(.system(size: 11).monospacedDigit())
-                .foregroundStyle(Color(white: 0.45))
-                .frame(width: layout.markerWidth, alignment: .trailing)
 
             Image(systemName: iconName)
                 .font(.system(size: 11))

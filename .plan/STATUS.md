@@ -19,3 +19,5 @@
 | [0516-1746-rename-newfolder-newfile.todo.md](0516-1746-rename-newfolder-newfile.todo.md) | 2026-05-16 17:46<br>— | todo | — |
 | [0516-1855-nexus-look-exact.done.md](0516-1855-nexus-look-exact.done.md) | 2026-05-16 18:55<br>2026-05-16 20:12 | done | ✅ |
 | [0516-2120-remove-active-pane-border.todo.md](0516-2120-remove-active-pane-border.todo.md) | 2026-05-16 21:20<br>— | todo | — |
+| [0516-2130-pane-layout-cleanup.todo.md](0516-2130-pane-layout-cleanup.todo.md) | 2026-05-16 21:30<br>— | todo | — |
+| [0516-2145-middle-column-path-sync-buttons.todo.md](0516-2145-middle-column-path-sync-buttons.todo.md) | 2026-05-16 21:45<br>— | todo | — |

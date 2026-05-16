@@ -40,6 +40,10 @@ struct PaneColumnView: View {
         .clipShape(RoundedRectangle(cornerRadius: 4))
         .accessibilityIdentifier(accessibilityPaneId)
         .accessibilityAddTraits(isActive ? [.isSelected] : [])
+        .overlay {
+            RoundedRectangle(cornerRadius: 4)
+                .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
+        }
         .contentShape(Rectangle())
         .simultaneousGesture(
             TapGesture(count: 2).onEnded {

@@ -14,12 +14,10 @@ struct PaneHeaderView: View {
                 onTap: onSegmentTap
             )
             .frame(maxWidth: .infinity, alignment: .leading)
-
-            VolumeBadgeView(currentURL: state.currentURL, mountedVolumes: state.mountedVolumes, paneSlot: state.slot)
         }
         .padding(.horizontal, 8)
         .frame(height: 28)
-        .background(FileColorToken.panelBackground)
+        .background(FileColorToken.neutralBackground)
         .overlay(alignment: .bottom) {
             Rectangle()
                 .fill(Color.white.opacity(0.08))

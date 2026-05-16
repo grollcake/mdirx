@@ -37,6 +37,14 @@ final class BrowserSession {
         current.moveSelection(delta: delta)
     }
 
+    func syncLeftToRight() async {
+        await right.navigate(to: left.currentURL, via: fs)
+    }
+
+    func syncRightToLeft() async {
+        await left.navigate(to: right.currentURL, via: fs)
+    }
+
     func bootstrap() async {
         async let l: Void = left.load(via: fs)
         async let r: Void = right.load(via: fs)
