@@ -25,10 +25,18 @@ final class PaneState {
     }
 
     var selectableEntries: [DirectoryEntry] {
-        entries.filter { !$0.isParentLink && !$0.isMountedVolume }
+        let volumeIDs = Set(mountedVolumes.map(\.id))
+        return entries.filter { !$0.isParentLink && !$0.isMountedVolume && !volumeIDs.contains($0.id) }
     }
 
     var selectableIDs: [URL] { selectableEntries.map(\.id) }
+
+    var fileOnlyIDs: [URL] {
+        let volumeIDs = Set(mountedVolumes.map(\.id))
+        return entries
+            .filter { !$0.isParentLink && !$0.isMountedVolume && !$0.isDirectory && !volumeIDs.contains($0.id) }
+            .map(\.id)
+    }
 
     func load(via fs: FileSystemActor) async {
         do {
@@ -225,9 +233,21 @@ final class PaneState {
         moveSelection(delta: -1)
     }
 
+    private enum SelectAllPhase { case none, files, filesAndFolders }
+    @ObservationIgnored private var selectAllPhase: SelectAllPhase = .none
+
     func selectAllToggle() {
-        let all = Set(selectableIDs)
-        selection = (selection == all) ? [] : all
+        switch selectAllPhase {
+        case .none:
+            selectAllPhase = .files
+            selection = Set(fileOnlyIDs)
+        case .files:
+            selectAllPhase = .filesAndFolders
+            selection = Set(selectableIDs)
+        case .filesAndFolders:
+            selectAllPhase = .none
+            selection = []
+        }
     }
 
     func clearSelection() {

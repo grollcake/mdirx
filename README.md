@@ -99,7 +99,7 @@ mdirx/  (일부)
 │   └── *.todo.md …         # 계획 본문 (파일명 규칙은 .plan/README 참고)
 └── docs/
     ├── PRD.md              # 제품 요구사항 문서
-    └── learnings/          # 실수·올바른 해결 (영역별, 인덱스: learnings/README.md)
+    └── learnings/          # 실수·올바른 해결 (영역별, 인덱스: learnings/learnings.md)
 ```
 
 > 로컬 검증(예): `swift 6.3.2`, `xcodebuild` — SDK macOS 15 타깃으로 `xcodebuild -project MdirX.xcodeproj -scheme MdirX -destination 'platform=macOS' build test` 가 통과하면 됩니다.
@@ -108,7 +108,7 @@ mdirx/  (일부)
 
 ## 작업·계획 문서 규격
 
-구현·리팩터에 앞서 **계획 문서부터** 쓴다. 세부 규칙·템플릿은 **[`.plan/README.md`](.plan/README.md)** 가 정본이다.
+구현·리팩터에 앞서 **계획 문서부터** 쓴다. 세부 규칙·템플릿은 **[`.plan/PLAN.md`](.plan/PLAN.md)** 가 정본이다.
 
 | 항목 | 요지 |
 |------|------|
@@ -149,11 +149,11 @@ mdirx/  (일부)
 
 - [`TODO.md`](TODO.md) — [`PLAN.md`](PLAN.md) 항목 추출·체크박스 목록
 - [`DONE.md`](DONE.md) — 완료 작업 요약
-- [`.plan/README.md`](.plan/README.md) — **계획 문서 규격**(파일명, 템플릿, 상태, `STATUS` 동기화)
+- [`.plan/PLAN.md`](.plan/PLAN.md) — **계획 문서 규격**(파일명, 템플릿, 상태, `STATUS` 동기화)
 - [`.plan/STATUS.md`](.plan/STATUS.md) — 계획별 진행 요약 표
 - [`AGENTS.md`](AGENTS.md) — 에이전트 작업 순서(계획 우선 등)
 - [PLAN.md](PLAN.md) — 기술 계획, 아키텍처, 데이터 모델, 키맵 전체
-- [docs/learnings/README.md](docs/learnings/README.md) — 작업 중 실수·해결 정리(영역별)
+- [docs/learnings/learnings.md](docs/learnings/learnings.md) — 작업 중 실수·해결 정리(영역별)
 - [docs/PRD.md](docs/PRD.md) — 제품 요구사항, 페르소나, 사용자 스토리, 성공 지표
 
 ---

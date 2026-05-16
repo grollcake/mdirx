@@ -9,6 +9,9 @@ private func makePopulatedPane() async throws -> (PaneState, URL, [DirectoryEntr
     for name in ["alpha", "bravo", "charlie", "delta"] {
         try FileManager.default.createDirectory(at: base.appendingPathComponent(name, isDirectory: true), withIntermediateDirectories: true)
     }
+    for name in ["file1.txt", "file2.txt"] {
+        FileManager.default.createFile(atPath: base.appendingPathComponent(name).path, contents: nil)
+    }
     let pane = PaneState(slot: .left, initialURL: base)
     let fs = FileSystemActor()
     await pane.load(via: fs)
@@ -60,13 +63,31 @@ func shiftUpPressTogglesAndMovesUp() async throws {
 
 @Test
 @MainActor
-func selectAllToggleSelectsThenClears() async throws {
+func selectAllToggle3Stages() async throws {
     let (pane, base, _) = try await makePopulatedPane()
     defer { try? FileManager.default.removeItem(at: base) }
+
+    // Stage 1: files only (no folders)
     pane.selectAllToggle()
-    #expect(pane.selection.count == pane.selectableIDs.count)
+    #expect(pane.selection == Set(pane.fileOnlyIDs))
+    #expect(!pane.selection.isEmpty)
+    for id in pane.selection {
+        let entry = pane.entries.first { $0.id == id }
+        #expect(entry?.isDirectory == false)
+    }
+
+    // Stage 2: files + folders
+    pane.selectAllToggle()
+    #expect(pane.selection == Set(pane.selectableIDs))
+    #expect(pane.selection.count > pane.fileOnlyIDs.count)
+
+    // Stage 3: clear
     pane.selectAllToggle()
     #expect(pane.selection.isEmpty)
+
+    // Cycle back to Stage 1
+    pane.selectAllToggle()
+    #expect(pane.selection == Set(pane.fileOnlyIDs))
 }
 
 @Test
