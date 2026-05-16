@@ -55,11 +55,6 @@ struct PaneSummaryView: View {
             .frame(height: 24)
             .padding(.leading, 12)
             .background(FileColorToken.neutralBackground)
-        .overlay(alignment: .bottom) {
-                Rectangle()
-                    .fill(Color.white.opacity(0.05))
-                    .frame(height: 1)
-            }
             .accessibilityIdentifier("pane.\(state.slot.rawValue).summary")
     }
 }

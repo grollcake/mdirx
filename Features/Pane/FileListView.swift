@@ -123,11 +123,6 @@ private struct FileListHeader: View {
         .foregroundStyle(Color(white: 0.45))
         .padding(.horizontal, FileListLayout.outerPadding)
         .frame(maxWidth: .infinity, minHeight: 22, alignment: .leading)
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(Color.white.opacity(0.08))
-                .frame(height: 1)
-        }
     }
 }
 

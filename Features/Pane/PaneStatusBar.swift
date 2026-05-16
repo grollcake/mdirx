@@ -43,11 +43,6 @@ struct PaneStatusBar: View {
             .frame(height: 24)
             .padding(.horizontal, 12)
             .background(Color.white.opacity(0.05))
-            .overlay(alignment: .top) {
-                Rectangle()
-                    .fill(Color.white.opacity(0.08))
-                    .frame(height: 1)
-            }
             .accessibilityIdentifier("pane.\(state.slot.rawValue).statusbar")
     }
 

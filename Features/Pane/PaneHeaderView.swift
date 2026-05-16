@@ -18,11 +18,6 @@ struct PaneHeaderView: View {
         .padding(.horizontal, 8)
         .frame(height: 28)
         .background(FileColorToken.neutralBackground)
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(Color.white.opacity(0.08))
-                .frame(height: 1)
-        }
         .contentShape(Rectangle())
         .onTapGesture {
             onActivate()
