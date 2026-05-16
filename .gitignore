@@ -14,7 +14,6 @@ xcuserdata/
 # Swift Package Manager
 .swiftpm/
 Package.resolved
-*.xcodeproj
 
 # SwiftUI Preview
 .swiftui-preview/

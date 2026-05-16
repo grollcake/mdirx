@@ -297,4 +297,4 @@ mdirx/
 - [x] 라이선스: **MIT** 확정
 - [x] 작업 디렉터리: **`mdirx`** 로 반영됨
 - [x] Xcode 16: 설치·사용 가능 확인됨
-- [ ] M1 킥오프 — 프로젝트 스캐폴딩
+- [x] M1 킥오프 — 프로젝트 스캐폴딩 (`MdirX.xcodeproj` 빌드·테스트 통과; 세부는 [.plan/0516-1628-project-scaffolding.done.md](.plan/0516-1628-project-scaffolding.done.md))

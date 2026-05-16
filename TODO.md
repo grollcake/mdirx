@@ -1,13 +1,15 @@
 # TODO
 
-> [`PLAN.md`](PLAN.md) 기준 옮김. 실행 단위 계획은 `.plan/`, 한 줄 진행은 `.plan/STATUS.md`. **아래 목록은 모두 `- [ ]` / `- [x]` 할 일 목록 형식만 사용한다.**
+- [x] (규칙) 본 파일은 **`- [ ]` / `- [x]`** 할 일 목록 형식만 사용한다.
+- [x] (출처) [`PLAN.md`](PLAN.md) 섹션과 대응해 유지한다.
+- [ ] (연동) 실행 단위는 `.plan/`, 한 줄 진행은 [`.plan/STATUS.md`](.plan/STATUS.md)와 맞출 것.
 
 ## 즉시 (PLAN §10)
 
 - [x] 라이선스: **MIT** 확정
 - [x] 작업 디렉터리: **`mdirx`** 로 반영됨
 - [x] Xcode 16: 설치·사용 가능 확인됨
-- [ ] M1 킥오프 — 프로젝트 스캐폴딩
+- [x] M1 킥오프 — 프로젝트 스캐폴딩 (빌드·테스트 검증됨; 계획 문서는 `doing` — 최종 `done`·커밋은 사용자 OK 이후)
 
 ## 마일스톤 (PLAN §9)
 
@@ -67,7 +69,7 @@
 
 ## 아키텍처·인프라 (PLAN §4 요지)
 
-- [ ] 디렉터리 구조 (App / Features / Core / DesignSystem / PlatformBridge / Tests) 스캐폴딩
+- [x] 디렉터리 구조 (App / Features / Core / DesignSystem / PlatformBridge / Tests) 스캐폴딩
 - [ ] `FileSystemActor` + `OperationQueue` + `@MainActor` ViewModel/`@Observable` 패턴 확립
 - [ ] SwiftData 모델: Favorite, PathHistoryEntry, FunctionKeyBinding, ThemeProfile, PaneSnapshot (§5)
 

@@ -8,6 +8,7 @@
 
 | 계획 문서 | 시작·완료 | 상태 | 사용자 OK |
 |-----------|-----------|------|-----------|
+| [0516-1628-project-scaffolding.done.md](0516-1628-project-scaffolding.done.md) | 2026-05-16 16:28<br>2026-05-16 16:38 | done | ✅ |
 | [0516-1630-EXAMPLE-dualpane.todo.md](0516-1630-EXAMPLE-dualpane.todo.md) | 2026-05-16 16:30<br>— | todo | — |
 
-*(EXAMPLE 계획 1건 — 저장소 샘플.)*
+*(스캐폴딩 계획 1건 + EXAMPLE 계획 1건.)*

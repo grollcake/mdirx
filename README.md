@@ -3,7 +3,7 @@
 > **Mdir, reborn on macOS.**
 > NexusFile 호환 키바인딩과 듀얼 패널 워크플로우를 macOS 15+ 네이티브로.
 
-[![status](https://img.shields.io/badge/status-planning-yellow)]()
+[![status](https://img.shields.io/badge/status-M1%20scaffold-green)]()
 [![platform](https://img.shields.io/badge/platform-macOS%2015%2B-blue)]()
 [![swift](https://img.shields.io/badge/Swift-6-orange)]()
 [![ui](https://img.shields.io/badge/UI-SwiftUI-purple)]()
@@ -23,7 +23,7 @@ MdirX는 macOS용 듀얼 패널 파일 매니저입니다. DOS 시절의 **Mdir 
 - 사용자 정의 함수키(F1~F12)
 - 라이트/다크 스킨
 
-> ⚠️ 현재 **기획 단계**입니다. 코드는 아직 없으며, 본 저장소는 계획·요구사항 문서로 시작합니다.
+> **M1 진행 중 — 빌드 가능.** Xcode에서 `MdirX` 스킴으로 Run·Test 할 수 있습니다. 듀얼 패널 등 기능 구현은 이어서 진행합니다.
 
 ---
 
@@ -31,7 +31,7 @@ MdirX는 macOS용 듀얼 패널 파일 매니저입니다. DOS 시절의 **Mdir 
 
 | 항목 | 상태 |
 |---|---|
-| 단계 | 기획 (Planning) |
+| 단계 | M1 스캐폴딩 완료 (앱·테스트 타깃 빌드 가능) |
 | 다음 마일스톤 | M1 — 듀얼 패널·탭·FS 작업·키보드 네비게이션 |
 | 최소 macOS | 15.0 Sequoia |
 | 아키텍처 | Universal (Apple Silicon + Intel) |
@@ -49,7 +49,7 @@ MdirX는 macOS용 듀얼 패널 파일 매니저입니다. DOS 시절의 **Mdir 
 - **검색**: NSMetadataQuery (Spotlight)
 - **미리보기**: QuickLookUI
 - **변경 감지**: FSEvents
-- **빌드**: Xcode 16 + Swift Package Manager
+- **빌드**: Xcode 프로젝트 `MdirX.xcodeproj` (재생성: `python3 scripts/gen_xcode_pbx.py`). SwiftPM 패키지 분리는 후속.
 - **테스트**: Swift Testing, XCUITest
 
 ---
@@ -77,6 +77,16 @@ MdirX는 macOS용 듀얼 패널 파일 매니저입니다. DOS 시절의 **Mdir 
 
 ```
 mdirx/  (일부)
+├── MdirX.xcodeproj/        # Xcode 프로젝트 (project.pbxproj ← scripts/gen_xcode_pbx.py)
+├── App/                    # MdirXApp.swift, ContentView.swift
+├── Features/               # PLAN §4.1 골격 (.gitkeep)
+├── Core/
+├── DesignSystem/
+├── PlatformBridge/
+├── Resources/
+├── Tests/
+├── MdirX/                  # MdirX.entitlements
+├── scripts/
 ├── README.md              # 이 문서
 ├── AGENTS.md               # 에이전트 작업 규칙 ([CLAUDE.md](CLAUDE.md)와 동일 내용 하드링크)
 ├── PLAN.md                 # 기술 계획 (아키텍처·키맵·마일스톤)
@@ -92,7 +102,7 @@ mdirx/  (일부)
     └── learnings/          # 실수·올바른 해결 (영역별, 인덱스: learnings/README.md)
 ```
 
-코드는 M1 킥오프와 함께 추가됩니다.
+> 로컬 검증(예): `swift 6.3.2`, `xcodebuild` — SDK macOS 15 타깃으로 `xcodebuild -project MdirX.xcodeproj -scheme MdirX -destination 'platform=macOS' build test` 가 통과하면 됩니다.
 
 ---
 
