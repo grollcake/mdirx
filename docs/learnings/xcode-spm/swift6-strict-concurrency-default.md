@@ -6,7 +6,7 @@ M1 스캐폴딩에서 [PLAN.md](../../../PLAN.md) 의 결정대로 `SWIFT_VERSIO
 
 ## 올바른 해결
 
-`App`/`View`/`Scene` 등 SwiftUI 표준 프로토콜은 이미 `@MainActor` 격리가 선언돼 있어, `@main struct MdirXApp: App` · `struct ContentView: View` · `enum PersistenceBootstrap { static func makeEmptyContainer() throws -> ModelContainer }` 수준의 placeholder 는 추가 표기 없이 **0 warning** 으로 빌드된다.
+`App`/`View`/`Scene` 등 SwiftUI 표준 프로토콜은 이미 `@MainActor` 격리가 선언돼 있어, `@main struct MdirXApp: App` · `struct DualPaneView: View` · `enum PersistenceBootstrap { static func makeEmptyContainer() throws -> ModelContainer }` 수준의 코드는 추가 표기 없이 **0 warning** 으로 빌드된다.
 
 → 동시성 가이드는 실제 actor 경계(`FileSystemActor`, OperationQueue, AsyncStream)가 등장하는 시점에 작성해도 늦지 않다. 스캐폴딩 단계에서 선제적으로 `@MainActor` 를 흩뿌릴 필요 없음.
 

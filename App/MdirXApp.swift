@@ -4,8 +4,9 @@ import SwiftUI
 struct MdirXApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            DualPaneView()
+                .preferredColorScheme(.dark)
         }
-        .defaultSize(width: 800, height: 500)
+        .defaultSize(width: 1000, height: 600)
     }
 }

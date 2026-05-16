@@ -42,3 +42,7 @@
 - [xcode-spm/xcodeproj-empty-subdirs-not-tracked.md](xcode-spm/xcodeproj-empty-subdirs-not-tracked.md) — 빈 `xcshareddata/`·`project.xcworkspace/` 미추적 → share scheme 누락으로 다른 머신 빌드 깨질 수 있음
 - [macos-sandbox/hardened-runtime-adhoc-sign-note.md](macos-sandbox/hardened-runtime-adhoc-sign-note.md) — `Disabling hardened runtime with ad-hoc codesigning` note 는 정상, Hardened Runtime ON 통과 조건 위반 아님
 - [git-ci/gitignore-xcodeproj-pitfall.md](git-ci/gitignore-xcodeproj-pitfall.md) — `.gitignore` 의 `*.xcodeproj` 는 네이티브 Xcode 프로젝트 저장소에서 반드시 제거
+- [swiftui/swiftui-table-row-hit-area-and-custom-layout.md](swiftui/swiftui-table-row-hit-area-and-custom-layout.md) — SwiftUI `TableColumn` 셀 modifier 는 행 전체 hit area 가 아니며, custom row 전환 시 컬럼 폭은 패널 폭 기반으로 계산
+- [xcode-spm/pbxproj-gen-script-required-for-new-sources.md](xcode-spm/pbxproj-gen-script-required-for-new-sources.md) — 신규 `*.swift` 추가 후 `python3 scripts/gen_xcode_pbx.py` 안 돌리면 "cannot find ... in scope" 가 미등록을 가린다
+- [xcode-spm/deriveddata-test-bundle-codesign-failure.md](xcode-spm/deriveddata-test-bundle-codesign-failure.md) — `build` 만 했는데 CodeSign 단계에서 `xctest` 번들이 깨져 실패하면 DerivedData 부터 비운다
+- [swiftui/foreach-duplicate-url-id-when-symlink-meets-mounted-volume.md](swiftui/foreach-duplicate-url-id-when-symlink-meets-mounted-volume.md) — 심볼릭이 mounted volume 과 같은 URL 을 가지면 `ForEach` 가 한쪽만 렌더링해 행 번호가 뒤죽박죽. 합칠 때 id dedupe + 1..N 재번호.

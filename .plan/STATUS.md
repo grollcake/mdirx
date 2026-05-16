@@ -9,6 +9,12 @@
 | 계획 문서 | 시작·완료 | 상태 | 사용자 OK |
 |-----------|-----------|------|-----------|
 | [0516-1628-project-scaffolding.done.md](0516-1628-project-scaffolding.done.md) | 2026-05-16 16:28<br>2026-05-16 16:38 | done | ✅ |
-| [0516-1630-EXAMPLE-dualpane.todo.md](0516-1630-EXAMPLE-dualpane.todo.md) | 2026-05-16 16:30<br>— | todo | — |
-
-*(스캐폴딩 계획 1건 + EXAMPLE 계획 1건.)*
+| [0516-1642-dualpane-shell.done.md](0516-1642-dualpane-shell.done.md) | 2026-05-16 16:42<br>2026-05-16 17:15 | done | ✅ |
+| [0516-1653-pane-file-listing.done.md](0516-1653-pane-file-listing.done.md) | 2026-05-16 16:53<br>2026-05-16 18:00 | done | ✅ |
+| [0516-1710-pane-list-nexusfile-look.done.md](0516-1710-pane-list-nexusfile-look.done.md) | 2026-05-16 18:00<br>2026-05-16 20:00 | done | ✅ |
+| [0516-1722-multi-selection.done.md](0516-1722-multi-selection.done.md) | 2026-05-16 17:22<br>2026-05-16 20:50 | done | ✅ |
+| [0516-1726-mouse-activation-and-doubleclick.done.md](0516-1726-mouse-activation-and-doubleclick.done.md) | 2026-05-16 17:26<br>2026-05-16 18:29 | done | ✅ |
+| [0516-1728-parent-link-entry.done.md](0516-1728-parent-link-entry.done.md) | 2026-05-16 17:28<br>2026-05-16 20:00 | done | ✅ |
+| [0516-1732-nexusfile-look-remediation.done.md](0516-1732-nexusfile-look-remediation.done.md) | 2026-05-16 17:32<br>2026-05-16 18:55 | done | ⚠️ 폐기 (→ 0516-1855) |
+| [0516-1746-rename-newfolder-newfile.todo.md](0516-1746-rename-newfolder-newfile.todo.md) | 2026-05-16 17:46<br>— | todo | — |
+| [0516-1855-nexus-look-exact.done.md](0516-1855-nexus-look-exact.done.md) | 2026-05-16 18:55<br>2026-05-16 20:12 | done | ✅ |

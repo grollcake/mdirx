@@ -3,7 +3,7 @@
 > **Mdir, reborn on macOS.**
 > NexusFile 호환 키바인딩과 듀얼 패널 워크플로우를 macOS 15+ 네이티브로.
 
-[![status](https://img.shields.io/badge/status-M1%20scaffold-green)]()
+[![status](https://img.shields.io/badge/status-M1%20in%20progress-green)]()
 [![platform](https://img.shields.io/badge/platform-macOS%2015%2B-blue)]()
 [![swift](https://img.shields.io/badge/Swift-6-orange)]()
 [![ui](https://img.shields.io/badge/UI-SwiftUI-purple)]()
@@ -14,7 +14,7 @@
 
 MdirX는 macOS용 듀얼 패널 파일 매니저입니다. DOS 시절의 **Mdir / NCD** 와 Windows의 **NexusFile** 을 사용해 온 파워유저가 macOS에서 동일한 키보드 중심 워크플로우를 그대로 쓸 수 있도록 설계됩니다.
 
-- 좌우 듀얼 패널 + 패널별 독립 탭
+- 좌우 듀얼 패널 (패널별 독립 탭은 후속 Phase 4)
 - F10 폴더 점프 (NCD/MCD 스타일 퍼지 검색)
 - F11 즐겨찾기
 - 고급 이름변경 (정규식·번호매김·라이브 프리뷰)
@@ -23,7 +23,7 @@ MdirX는 macOS용 듀얼 패널 파일 매니저입니다. DOS 시절의 **Mdir 
 - 사용자 정의 함수키(F1~F12)
 - 라이트/다크 스킨
 
-> **M1 진행 중 — 빌드 가능.** Xcode에서 `MdirX` 스킴으로 Run·Test 할 수 있습니다. 듀얼 패널 등 기능 구현은 이어서 진행합니다.
+> **M1 진행 중.** `FileSystemActor`·목록·경로 복원·`..` 부모 행·요약/상태바·색/볼륨 인프라 등은 [0516-1710](.plan/0516-1710-pane-list-nexusfile-look.done.md)·[0516-1728](.plan/0516-1728-parent-link-entry.done.md) 계획 기준 **완료**로 표시됨. NexusFile 룩 UI 보완은 [0516-1732](.plan/0516-1732-nexusfile-look-remediation.doing.md) 기준 진행 중이며, 다음 작업은 [.plan/STATUS.md](.plan/STATUS.md) 의 `todo`/`doing` 행을 따름.
 
 ---
 
@@ -31,8 +31,8 @@ MdirX는 macOS용 듀얼 패널 파일 매니저입니다. DOS 시절의 **Mdir 
 
 | 항목 | 상태 |
 |---|---|
-| 단계 | M1 스캐폴딩 완료 (앱·테스트 타깃 빌드 가능) |
-| 다음 마일스톤 | M1 — 듀얼 패널·탭·FS 작업·키보드 네비게이션 |
+| 단계 | M1 — 듀얼 패널 + 디렉터리 나열·키보드 네비게이션 |
+| 다음 마일스톤 | [.plan/STATUS.md](.plan/STATUS.md) 의 `doing`/`todo` (Nexus 룩 보완·다중 선택·이름변경/새 항목 등) |
 | 최소 macOS | 15.0 Sequoia |
 | 아키텍처 | Universal (Apple Silicon + Intel) |
 | 배포 채널 | Developer ID 서명 + Notarization, 직접 배포 (App Store 미지원) |
@@ -78,7 +78,7 @@ MdirX는 macOS용 듀얼 패널 파일 매니저입니다. DOS 시절의 **Mdir 
 ```
 mdirx/  (일부)
 ├── MdirX.xcodeproj/        # Xcode 프로젝트 (project.pbxproj ← scripts/gen_xcode_pbx.py)
-├── App/                    # MdirXApp.swift, ContentView.swift
+├── App/                    # MdirXApp.swift
 ├── Features/               # PLAN §4.1 골격 (.gitkeep)
 ├── Core/
 ├── DesignSystem/
@@ -126,7 +126,7 @@ mdirx/  (일부)
 
 | 마일스톤 | 기간 | 산출물 |
 |---|---|---|
-| **M1** | 2주 | 듀얼 패널·탭·기본 FS 작업·키보드 네비게이션 |
+| **M1** | 2주 | 듀얼 패널·기본 FS 작업·키보드 네비게이션 (탭은 Phase 4) |
 | **M2** | 2주 | F10 점프·F11 즐겨찾기·고급 이름변경·검색 |
 | **M3** | 2주 | ZIP·QuickLook·FSEvents·함수키 카탈로그 |
 | **M4** | 1.5주 | 스킨/테마·환경설정·import/export |

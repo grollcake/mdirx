@@ -1,0 +1,279 @@
+import AppKit
+import Foundation
+
+enum PaneSlot: String, Sendable, CaseIterable {
+    case left
+    case right
+}
+
+@MainActor
+@Observable
+final class PaneState {
+    let slot: PaneSlot
+    private(set) var currentURL: URL
+    private(set) var entries: [DirectoryEntry] = []
+    private(set) var mountedVolumes: [MountedVolume] = []
+    var cursorID: URL?
+    var selection: Set<URL> = []
+    var error: String?
+    var hiddenVisible: Bool = false
+
+    init(slot: PaneSlot, initialURL: URL) {
+        self.slot = slot
+        self.currentURL = initialURL
+        persistURL()
+    }
+
+    var selectableEntries: [DirectoryEntry] {
+        entries.filter { !$0.isParentLink && !$0.isMountedVolume }
+    }
+
+    var selectableIDs: [URL] { selectableEntries.map(\.id) }
+
+    func load(via fs: FileSystemActor) async {
+        do {
+            let list = try await fs.listDirectory(at: currentURL, includeHidden: hiddenVisible)
+            let volumes = VolumeService.mountedVolumes()
+            entries = list
+            mountedVolumes = volumes
+            error = nil
+            if let cur = cursorID, paneRows.contains(where: { $0.id == cur }) {
+                // keep cursor
+            } else {
+                cursorID = list.first(where: { !$0.isParentLink && !$0.isMountedVolume })?.id
+                    ?? list.first?.id
+                    ?? volumes.first?.id
+            }
+            let alive = Set(list.map(\.id)).union(Set(volumes.map(\.id)))
+            selection.formIntersection(alive)
+            persistURL()
+        } catch {
+            entries = []
+            mountedVolumes = []
+            selection.removeAll()
+            self.error = error.localizedDescription
+        }
+    }
+
+    func enter(via fs: FileSystemActor) async {
+        guard let sel = cursorID,
+              let entry = entries.first(where: { $0.id == sel })
+        else {
+            if let volume = mountedVolumes.first(where: { $0.id == cursorID }) {
+                currentURL = volume.id.resolvingSymlinksInPath()
+                cursorID = nil
+                selection.removeAll()
+                await load(via: fs)
+            }
+            return
+        }
+
+        if entry.isParentLink {
+            currentURL = entry.url
+            cursorID = nil
+            selection.removeAll()
+            await load(via: fs)
+            return
+        }
+
+        guard entry.isDirectory else { return }
+        currentURL = entry.url.resolvingSymlinksInPath()
+        cursorID = nil
+        selection.removeAll()
+        await load(via: fs)
+    }
+
+    func navigate(to url: URL, via fs: FileSystemActor) async {
+        currentURL = url.resolvingSymlinksInPath()
+        cursorID = nil
+        selection.removeAll()
+        await load(via: fs)
+    }
+
+    func ascend(via fs: FileSystemActor) async {
+        let parent = currentURL.deletingLastPathComponent()
+        guard parent.path != currentURL.path else { return }
+        currentURL = parent
+        cursorID = nil
+        selection.removeAll()
+        await load(via: fs)
+    }
+
+    func toggleHidden(via fs: FileSystemActor) async {
+        hiddenVisible.toggle()
+        await load(via: fs)
+    }
+
+    enum PrimaryMouseAction: Equatable {
+        case noSelection
+        case ascend
+        case navigateMountedVolume(URL)
+        case enterDirectory
+        case openFile(URL)
+    }
+
+    static func inspectPrimaryMouseDoubleClick(cursorID: URL?, entries: [DirectoryEntry]) -> PrimaryMouseAction {
+        guard let id = cursorID,
+              let entry = entries.first(where: { $0.id == id }) else {
+            return .noSelection
+        }
+        if entry.isParentLink { return .ascend }
+        if entry.isMountedVolume { return .navigateMountedVolume(entry.url) }
+        if entry.isDirectory { return .enterDirectory }
+        return .openFile(entry.url)
+    }
+
+    func handleDoubleClick(via fs: FileSystemActor) async {
+        await handleDoubleClick(via: fs, openFile: Self.openFileForPrimaryMouseAction)
+    }
+
+    func handleDoubleClick(via fs: FileSystemActor, openFile: (URL) -> Bool) async {
+        if let volume = mountedVolumes.first(where: { $0.id == cursorID }) {
+            currentURL = volume.id.resolvingSymlinksInPath()
+            cursorID = nil
+            selection.removeAll()
+            await load(via: fs)
+            return
+        }
+
+        switch Self.inspectPrimaryMouseDoubleClick(cursorID: cursorID, entries: entries) {
+        case .noSelection:
+            return
+        case .ascend:
+            await ascend(via: fs)
+        case let .navigateMountedVolume(volumeURL):
+            currentURL = volumeURL.resolvingSymlinksInPath()
+            cursorID = nil
+            selection.removeAll()
+            await load(via: fs)
+        case .enterDirectory:
+            await enter(via: fs)
+        case let .openFile(url):
+            _ = openFile(url)
+        }
+    }
+
+    private static func openFileForPrimaryMouseAction(_ url: URL) -> Bool {
+        let env = ProcessInfo.processInfo.environment
+        if let logPath = env["MDIRX_TEST_OPEN_LOG"], !logPath.isEmpty {
+            let logURL = URL(fileURLWithPath: logPath)
+            guard let data = "\(url.standardizedFileURL.path)\n".data(using: .utf8) else {
+                return false
+            }
+            if FileManager.default.fileExists(atPath: logPath),
+               let handle = try? FileHandle(forWritingTo: logURL) {
+                do {
+                    try handle.seekToEnd()
+                    try handle.write(contentsOf: data)
+                    try handle.close()
+                    return true
+                } catch {
+                    try? handle.close()
+                    return false
+                }
+            }
+            do {
+                try data.write(to: logURL, options: .atomic)
+                return true
+            } catch {
+                return false
+            }
+        }
+        return NSWorkspace.shared.open(url)
+    }
+
+    // MARK: - Cursor / selection ops
+
+    func moveSelection(delta: Int) {
+        let rows = paneRows
+        guard !rows.isEmpty else { return }
+        if cursorID == nil {
+            cursorID = rows.first?.id
+            return
+        }
+        guard let idx = rows.firstIndex(where: { $0.id == cursorID }) else {
+            cursorID = rows.first?.id
+            return
+        }
+        let j = idx + delta
+        guard j >= 0, j < rows.count else { return }
+        cursorID = rows[j].id
+    }
+
+    private func isSelectable(_ id: URL) -> Bool {
+        selectableIDs.contains(id)
+    }
+
+    func toggleAtCursor() {
+        guard let cur = cursorID, isSelectable(cur) else { return }
+        if selection.contains(cur) {
+            selection.remove(cur)
+        } else {
+            selection.insert(cur)
+        }
+    }
+
+    func spacePress() {
+        toggleAtCursor()
+        moveSelection(delta: 1)
+    }
+
+    func shiftDownPress() { spacePress() }
+
+    func shiftUpPress() {
+        toggleAtCursor()
+        moveSelection(delta: -1)
+    }
+
+    func selectAllToggle() {
+        let all = Set(selectableIDs)
+        selection = (selection == all) ? [] : all
+    }
+
+    func clearSelection() {
+        selection.removeAll()
+    }
+
+    func extendRange(to clickedID: URL) {
+        let ids = selectableIDs
+        guard let from = cursorID,
+              let i = ids.firstIndex(of: from),
+              let j = ids.firstIndex(of: clickedID) else {
+            cursorID = clickedID
+            return
+        }
+        let lo = min(i, j), hi = max(i, j)
+        for k in lo...hi {
+            selection.insert(ids[k])
+        }
+        cursorID = clickedID
+    }
+
+    func toggleSingle(at clickedID: URL) {
+        cursorID = clickedID
+        guard isSelectable(clickedID) else { return }
+        if selection.contains(clickedID) {
+            selection.remove(clickedID)
+        } else {
+            selection.insert(clickedID)
+        }
+    }
+
+    private func persistURL() {
+        UserDefaults.standard.set(currentURL, forKey: "pane.\(slot.rawValue).lastURL")
+    }
+}
+
+enum PaneRestore {
+    @MainActor
+    static func url(for slot: PaneSlot) -> URL? {
+        guard let u = UserDefaults.standard.url(forKey: "pane.\(slot.rawValue).lastURL") else {
+            return nil
+        }
+        var isDir: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: u.path, isDirectory: &isDir), isDir.boolValue else {
+            return nil
+        }
+        return u
+    }
+}

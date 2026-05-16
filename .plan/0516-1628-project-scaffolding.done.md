@@ -8,7 +8,7 @@
 
 ## 개요
 
-Xcode 16 기반 macOS 앱 타깃 하나(`MdirX`)와 Swift 6 strict concurrency, SwiftData `ModelContainer`, [PLAN.md §4.1](../PLAN.md)의 디렉터리 구조 골격, 그리고 Swift Testing / XCUITest 두 개의 테스트 타깃을 갖춘 **빈 실행 가능한 SwiftUI 앱**을 만든다. 화면은 "MdirX" 라벨이 들어간 빈 윈도우 한 개. 이 위에서 [0516-1630-EXAMPLE-dualpane.todo.md](0516-1630-EXAMPLE-dualpane.todo.md) 류 후속 계획들이 곧장 View·ViewModel 파일을 추가할 수 있어야 한다.
+Xcode 16 기반 macOS 앱 타깃 하나(`MdirX`)와 Swift 6 strict concurrency, SwiftData `ModelContainer`, [PLAN.md §4.1](../PLAN.md)의 디렉터리 구조 골격, 그리고 Swift Testing / XCUITest 두 개의 테스트 타깃을 갖춘 **빈 실행 가능한 SwiftUI 앱**을 만든다. 화면은 "MdirX" 라벨이 들어간 빈 윈도우 한 개. 이 위에서 [0516-1642-dualpane-shell.done.md](0516-1642-dualpane-shell.done.md) 류 후속 계획들이 곧장 View·ViewModel 파일을 추가할 수 있어야 한다.
 
 ## 요구사항
 
@@ -36,7 +36,7 @@ Xcode 16 기반 macOS 앱 타깃 하나(`MdirX`)와 Swift 6 strict concurrency, 
 - `swift -version`, `xcodebuild -version` 둘 다 README 또는 PLAN 의 가정과 일치하는지 README 코멘트로 기록.
 
 ### 비범위
-- 실제 듀얼 패널 UI, FS actor, 단축키 처리, 키맵 — 모두 **후속 계획**(`0516-1630-EXAMPLE-dualpane.todo.md` 부터) 에서 다룸.
+- 실제 듀얼 패널 UI, FS actor, 단축키 처리, 키맵 — 모두 **후속 계획**([0516-1642-dualpane-shell.done.md](0516-1642-dualpane-shell.done.md) 참고: 셸 완료 후 M1 본선) 에서 다룸.
 - SwiftPM 모듈 분리, CI(GitHub Actions), Notarization 자동화 — Phase 2 이후.
 - App Icon 디자인.
 
