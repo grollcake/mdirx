@@ -282,6 +282,96 @@ final class PaneState {
     private func persistURL() {
         UserDefaults.standard.set(currentURL, forKey: "pane.\(slot.rawValue).lastURL")
     }
+
+    // MARK: - Name Editing
+
+    var editing: NameEditingMode? = nil
+    var editingDraft: String = ""
+    var editingError: String? = nil
+
+    func requestRename() {
+        guard let id = cursorID,
+              let e = entries.first(where: { $0.id == id }),
+              !e.isParentLink, !e.isMountedVolume else { return }
+        editing = .rename(e.url)
+        editingDraft = e.displayName + (e.ext.isEmpty ? "" : ".\(e.ext)")
+        editingError = nil
+    }
+
+    func requestNewFolder() {
+        editing = .newFolder
+        editingDraft = ""
+        editingError = nil
+    }
+
+    func requestNewFile() {
+        editing = .newFile
+        editingDraft = ""
+        editingError = nil
+    }
+
+    func validateDraft() {
+        let s = editingDraft
+        if s.isEmpty { editingError = nil; return }
+        if s.contains("/") || s.contains("\0") {
+            editingError = "사용할 수 없는 문자: / 또는 NUL"; return
+        }
+        if s == "." || s == ".." {
+            editingError = "이 이름은 사용할 수 없습니다"; return
+        }
+        let dupe = entries.contains { e in
+            let existing = e.displayName + (e.ext.isEmpty ? "" : ".\(e.ext)")
+            if case .rename(let u) = editing, e.url == u { return false }
+            return existing == s
+        }
+        if dupe { editingError = "같은 이름의 항목이 이미 있습니다"; return }
+        editingError = nil
+    }
+
+    func commit(via fs: FileSystemActor) async {
+        validateDraft()
+        guard editingError == nil, let mode = editing else { return }
+        do {
+            let resultURL: URL
+            switch mode {
+            case .rename(let target):
+                resultURL = try await fs.rename(at: target, to: editingDraft)
+                if selection.remove(target) != nil { selection.insert(resultURL) }
+            case .newFolder:
+                resultURL = try await fs.createDirectory(at: currentURL, name: editingDraft)
+            case .newFile:
+                resultURL = try await fs.createEmptyFile(at: currentURL, name: editingDraft)
+            }
+            editing = nil
+            editingDraft = ""
+            editingError = nil
+            await load(via: fs)
+            cursorID = resultURL
+        } catch {
+            editingError = (error as? LocalizedError)?.errorDescription
+                        ?? error.localizedDescription
+        }
+    }
+
+    func cancelEditing() {
+        editing = nil
+        editingDraft = ""
+        editingError = nil
+    }
+}
+
+enum NameEditingMode: Equatable, Identifiable {
+    case rename(URL)
+    case newFolder
+    case newFile
+
+    var id: String {
+        switch self {
+        case .rename(let u): return "rename:\(u.path)"
+        case .newFolder:     return "newFolder"
+        case .newFile:       return "newFile"
+        }
+    }
 }
 
 enum PaneRestore {

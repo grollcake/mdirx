@@ -10,6 +10,7 @@ struct DualPaneView: View {
                 state: session.left,
                 isActive: session.activePane == .left,
                 accessibilityPaneId: "pane.left",
+                fs: session.fs,
                 onActivate: { session.activePane = .left },
                 onDoubleClick: {
                     Task { await session.left.handleDoubleClick(via: session.fs) }
@@ -52,6 +53,7 @@ struct DualPaneView: View {
                 state: session.right,
                 isActive: session.activePane == .right,
                 accessibilityPaneId: "pane.right",
+                fs: session.fs,
                 onActivate: { session.activePane = .right },
                 onDoubleClick: {
                     Task { await session.right.handleDoubleClick(via: session.fs) }
@@ -72,6 +74,8 @@ struct DualPaneView: View {
         .focusEffectDisabled()
         .onAppear { keyHandlingFocused = true }
         .onKeyPress { press in
+            // 편집 모달이 열려 있으면 모달이 키를 처리하도록 양보
+            guard session.current.editing == nil else { return .ignored }
             if press.key == .tab {
                 session.toggleActive()
                 return .handled
@@ -123,6 +127,19 @@ struct DualPaneView: View {
                     Task { await session.current.toggleHidden(via: session.fs) }
                     return .handled
                 }
+            }
+            // F2 = rename, ⌥K = new folder, ⌃N = new file
+            if press.key == KeyEquivalent(Character(Unicode.Scalar(0xF705)!)), press.modifiers.isEmpty {
+                session.current.requestRename()
+                return .handled
+            }
+            if press.key == KeyEquivalent("k"), press.modifiers.contains(.option) {
+                session.current.requestNewFolder()
+                return .handled
+            }
+            if press.key == KeyEquivalent("n"), press.modifiers.contains(.control) {
+                session.current.requestNewFile()
+                return .handled
             }
             return .ignored
         }

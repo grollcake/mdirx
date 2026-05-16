@@ -103,4 +103,28 @@ actor FileSystemActor {
 
         return entries
     }
+
+    func rename(at url: URL, to newName: String) async throws -> URL {
+        let dest = url.deletingLastPathComponent().appendingPathComponent(newName)
+        try FileManager.default.moveItem(at: url, to: dest)
+        return dest
+    }
+
+    func createDirectory(at parent: URL, name: String) async throws -> URL {
+        let dest = parent.appendingPathComponent(name, isDirectory: true)
+        try FileManager.default.createDirectory(at: dest, withIntermediateDirectories: false)
+        return dest
+    }
+
+    func createEmptyFile(at parent: URL, name: String) async throws -> URL {
+        let dest = parent.appendingPathComponent(name, isDirectory: false)
+        guard FileManager.default.createFile(atPath: dest.path, contents: nil) else {
+            throw NSError(
+                domain: NSCocoaErrorDomain,
+                code: NSFileWriteUnknownError,
+                userInfo: [NSLocalizedDescriptionKey: "파일 생성 실패"]
+            )
+        }
+        return dest
+    }
 }

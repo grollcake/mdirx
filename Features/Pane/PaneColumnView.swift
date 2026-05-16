@@ -4,6 +4,7 @@ struct PaneColumnView: View {
     @Bindable var state: PaneState
     let isActive: Bool
     let accessibilityPaneId: String
+    let fs: FileSystemActor
     let onActivate: @MainActor () -> Void
     let onDoubleClick: @MainActor () -> Void
     let onSegmentTap: @MainActor (URL) -> Void
@@ -56,5 +57,8 @@ struct PaneColumnView: View {
                 onActivate()
             }
         )
+        .sheet(item: $state.editing) { _ in
+            NameEditModal(state: state, fs: fs)
+        }
     }
 }
