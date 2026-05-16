@@ -1,0 +1,61 @@
+# Xcode
+build/
+Build/
+DerivedData/
+*.xcarchive
+*.swiftpm/
+.swiftpm/
+.build/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.playground/timeline.xctimeline
+xcuserdata/
+
+# Swift Package Manager
+.swiftpm/
+Package.resolved
+*.xcodeproj
+
+# SwiftUI Preview
+.swiftui-preview/
+
+# Simulator
+xcrun-output/
+Simulator\ Logs/
+
+# OS
+.DS_Store
+.AppleDouble
+.LSOverride
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Build artifacts
+*.app
+*.dSYM/
+*.dSYM.zip
+*.ipa
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Environment
+.env
+.env.local
+
+# Project specific
+.omc/
+.openchrome/
