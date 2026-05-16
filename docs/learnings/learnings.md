@@ -46,3 +46,5 @@
 - [xcode-spm/pbxproj-gen-script-required-for-new-sources.md](xcode-spm/pbxproj-gen-script-required-for-new-sources.md) — 신규 `*.swift` 추가 후 `python3 scripts/gen_xcode_pbx.py` 안 돌리면 "cannot find ... in scope" 가 미등록을 가린다
 - [xcode-spm/deriveddata-test-bundle-codesign-failure.md](xcode-spm/deriveddata-test-bundle-codesign-failure.md) — `build` 만 했는데 CodeSign 단계에서 `xctest` 번들이 깨져 실패하면 DerivedData 부터 비운다
 - [swiftui/foreach-duplicate-url-id-when-symlink-meets-mounted-volume.md](swiftui/foreach-duplicate-url-id-when-symlink-meets-mounted-volume.md) — 심볼릭이 mounted volume 과 같은 URL 을 가지면 `ForEach` 가 한쪽만 렌더링해 행 번호가 뒤죽박죽. 합칠 때 id dedupe + 1..N 재번호.
+- [swiftui/ismountedvolume-flag-always-false-dedup-mismatch.md](swiftui/ismountedvolume-flag-always-false-dedup-mismatch.md) — `isMountedVolume` 플래그는 항상 `false`라 신뢰 불가. 드라이브 제외는 `mountedVolumes.map(\.id)` 집합과 대조해야 `paneRows` dedup과 일치.
+- [swiftui/select-all-must-exclude-volumes-via-url-set.md](swiftui/select-all-must-exclude-volumes-via-url-set.md) — 일괄 선택(복사·이동·삭제 포함)은 `volumeIDs` URL 집합으로 볼륨을 명시 제외해야 한다.
