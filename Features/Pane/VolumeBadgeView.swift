@@ -52,13 +52,15 @@ struct VolumeUsageBar: View {
     let usedRatio: Double
 
     var body: some View {
-        Capsule()
-            .fill(Color.white.opacity(0.18))
-            .frame(width: 60, height: 6)
-            .overlay(alignment: .leading) {
-                Capsule()
-                    .fill(Color.white.opacity(0.55))
-                    .frame(width: 60 * usedRatio, height: 6)
-            }
+        GeometryReader { geo in
+            Capsule()
+                .fill(Color.white.opacity(0.18))
+                .overlay(alignment: .leading) {
+                    Capsule()
+                        .fill(Color.white.opacity(0.55))
+                        .frame(width: geo.size.width * usedRatio)
+                }
+        }
+        .frame(height: 6)
     }
 }

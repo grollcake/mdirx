@@ -18,7 +18,7 @@ struct FileListView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 GeometryReader { proxy in
-                    let layout = FileListLayout.available(in: proxy.size.width)
+                    let layout = FileListLayout.available(in: proxy.size.width, rows: state.paneRows)
                     VStack(spacing: 0) {
                         ScrollView {
                             LazyVStack(spacing: 0) {
@@ -57,24 +57,48 @@ private struct FileListLayout {
     static let outerPadding: CGFloat = 6
     static let rowHeight: CGFloat = 20
 
+    // dateWidth: "yyyy-MM-dd" 문자열을 monospacedDigit size 11 로 한 번만 측정
+    static let dateWidth: CGFloat = {
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .regular)
+        ]
+        return ceil(("2026-05-17" as NSString).size(withAttributes: attrs).width) + 4
+    }()
+
     let selectionMarkerWidth: CGFloat = 12
     let iconWidth: CGFloat = 14
     let extWidth: CGFloat = 52
     let sizeWidth: CGFloat = 56
-    let dateWidth: CGFloat = 70
+    var dateWidth: CGFloat { Self.dateWidth }
     let timeWidth: CGFloat = 36
     let attrsWidth: CGFloat = 36
     let nameWidth: CGFloat
     let descriptionWidth: CGFloat
 
-    static func available(in totalWidth: CGFloat) -> FileListLayout {
-        // fixed = 12+14+52+56+70+36+36 = 276, spacing = 8*8 = 64
-        let fixed: CGFloat = 276
-        let spacing: CGFloat = 64
+    static func available(in totalWidth: CGFloat, rows: [PaneRow]) -> FileListLayout {
+        // fixed = 12+14+52+56+dateWidth+36+36
+        // spacing: left-group 2×8=16, mid 1×12=12, right-group 5×12=60 → 88
+        let fixed = 12 + 14 + 52 + 56 + Self.dateWidth + 36 + 36
+        let spacing: CGFloat = 88
         let forFlexible = max(0, totalWidth - outerPadding * 2 - fixed - spacing)
+
+        let nameAttrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 12, weight: .regular)
+        ]
+        let maxContent = rows.map { row -> CGFloat in
+            let name: String
+            switch row.kind {
+            case let .file(entry): name = entry.displayName
+            case let .volume(volume): name = volume.name
+            }
+            return (name as NSString).size(withAttributes: nameAttrs).width
+        }.max() ?? 0
+
+        let maxAllowed = forFlexible * 0.75
+        let nameWidth = max(90, min(maxContent + 12, maxAllowed))
         return FileListLayout(
-            nameWidth: max(90, forFlexible * 0.75),
-            descriptionWidth: max(0, forFlexible * 0.25)
+            nameWidth: nameWidth,
+            descriptionWidth: max(0, forFlexible - nameWidth)
         )
     }
 }
@@ -120,52 +144,62 @@ private struct FileListRow: View {
     @State private var lastTapRowID: URL?
 
     var body: some View {
-        HStack(spacing: 8) {
-            Text(isMarked ? "▶" : "")
-                .font(.system(size: 11).monospaced())
-                .foregroundStyle(.yellow)
-                .frame(width: layout.selectionMarkerWidth, alignment: .center)
+        HStack(spacing: 12) {
+            HStack(spacing: 8) {
+                Text(isMarked ? "▶" : "")
+                    .font(.system(size: 11).monospaced())
+                    .foregroundStyle(.yellow)
+                    .frame(width: layout.selectionMarkerWidth, alignment: .center)
 
-            Image(systemName: iconName)
-                .font(.system(size: 11))
-                .foregroundStyle(iconColor)
-                .frame(width: layout.iconWidth, alignment: .center)
+                Image(systemName: iconName)
+                    .font(.system(size: 11))
+                    .foregroundStyle(iconColor)
+                    .frame(width: layout.iconWidth, alignment: .center)
 
-            Text(name)
-                .font(.system(size: 12, weight: .regular))
-                .foregroundStyle(nameColor)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .frame(width: layout.nameWidth, alignment: .leading)
-                .clipped()
+                Text(name)
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundStyle(nameColor)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(width: layout.nameWidth, alignment: .leading)
+                    .clipped()
+            }
 
-            Text(ext)
-                .font(.system(size: 12))
-                .foregroundStyle(nameColor)
-                .frame(width: layout.extWidth, alignment: .leading)
+            HStack(spacing: 12) {
+                extView
+                    .frame(width: layout.extWidth, alignment: .leading)
 
-            Text(size)
-                .font(.system(size: 11).monospacedDigit())
-                .foregroundStyle(sizeColor)
-                .frame(width: layout.sizeWidth, alignment: .trailing)
+                if case let .volume(volume) = row.kind {
+                    Text("\(Self.formatBytes(volume.freeBytes)) 남음")
+                        .font(.system(size: 11).monospacedDigit())
+                        .foregroundStyle(Color(white: 0.78))
+                        .frame(
+                            width: layout.sizeWidth + layout.dateWidth + layout.timeWidth + layout.attrsWidth + 3 * 12,
+                            alignment: .leading
+                        )
+                } else {
+                    sizeView
+                        .frame(width: layout.sizeWidth, alignment: .trailing)
 
-            Text(date)
-                .font(.system(size: 11).monospacedDigit())
-                .foregroundStyle(Color(white: 0.7))
-                .frame(width: layout.dateWidth, alignment: .leading)
+                    Text(date)
+                        .font(.system(size: 11).monospacedDigit())
+                        .foregroundStyle(Color(white: 0.7))
+                        .frame(width: layout.dateWidth, alignment: .leading)
 
-            Text(time)
-                .font(.system(size: 11).monospacedDigit())
-                .foregroundStyle(Color(white: 0.7))
-                .frame(width: layout.timeWidth, alignment: .leading)
+                    Text(time)
+                        .font(.system(size: 11).monospacedDigit())
+                        .foregroundStyle(Color(white: 0.7))
+                        .frame(width: layout.timeWidth, alignment: .leading)
 
-            Text(attrs)
-                .font(.system(size: 11).monospaced())
-                .foregroundStyle(Color(white: 0.55))
-                .frame(width: layout.attrsWidth, alignment: .leading)
+                    Text(attrs)
+                        .font(.system(size: 11).monospaced())
+                        .foregroundStyle(Color(white: 0.55))
+                        .frame(width: layout.attrsWidth, alignment: .leading)
+                }
 
-            descriptionView
-                .frame(width: layout.descriptionWidth, alignment: .leading)
+                descriptionView
+                    .frame(width: layout.descriptionWidth, alignment: .leading)
+            }
         }
         .lineLimit(1)
         .truncationMode(.tail)
@@ -224,31 +258,67 @@ private struct FileListRow: View {
         }
     }
 
-    private var ext: String {
+    @ViewBuilder
+    private var extView: some View {
         switch row.kind {
         case let .file(entry):
-            if entry.isParentLink { return "" }
-            if entry.isDirectory { return "[폴더]" }
-            return entry.ext
-        case .volume:
-            return "[드라이브]"
+            if entry.isParentLink || entry.isDirectory {
+                Color.clear
+            } else {
+                Text(entry.ext)
+                    .font(.system(size: 12))
+                    .foregroundStyle(nameColor)
+            }
+        case let .volume(volume):
+            VolumeUsageBar(usedRatio: usedRatio(for: volume))
         }
     }
 
-    private var size: String {
+    @ViewBuilder
+    private var sizeView: some View {
         switch row.kind {
         case let .file(entry):
-            if entry.isParentLink || entry.isDirectory { return "" }
-            return ByteCountFormatter.string(fromByteCount: entry.size, countStyle: .file)
-        case .volume:
-            return ""
+            if entry.isParentLink {
+                Color.clear
+            } else if entry.isDirectory {
+                Text("[폴더]")
+                    .font(.system(size: 11).monospacedDigit())
+                    .foregroundStyle(Color(white: 0.45))
+            } else {
+                Text(Self.formatBytes(entry.size))
+                    .font(.system(size: 11).monospacedDigit())
+                    .foregroundStyle(Color(white: 0.85))
+            }
+        case let .volume(volume):
+            Text("\(Self.formatBytes(volume.freeBytes)) 남음")
+                .font(.system(size: 11).monospacedDigit())
+                .foregroundStyle(Color(white: 0.78))
         }
+    }
+
+    private static func formatBytes(_ bytes: Int64) -> String {
+        let b = Double(bytes)
+        let units: [(Double, String)] = [
+            (1_000_000_000_000, "TB"),
+            (1_000_000_000, "GB"),
+            (1_000_000, "MB"),
+            (1_000, "KB"),
+        ]
+        for (threshold, unit) in units {
+            if b >= threshold {
+                let value = b / threshold
+                return value < 10
+                    ? String(format: "%.1f \(unit)", value)
+                    : String(format: "%.0f \(unit)", value)
+            }
+        }
+        return "\(bytes) B"
     }
 
     private var date: String {
         switch row.kind {
         case let .file(entry):
-            entry.relativeOrCalendarDate()
+            entry.isParentLink ? "" : entry.relativeOrCalendarDate()
         case .volume:
             ""
         }
@@ -264,7 +334,7 @@ private struct FileListRow: View {
     private var time: String {
         switch row.kind {
         case let .file(entry):
-            Self.timeFormatter.string(from: entry.modificationDate)
+            entry.isParentLink ? "" : Self.timeFormatter.string(from: entry.modificationDate)
         case .volume:
             ""
         }
@@ -272,8 +342,8 @@ private struct FileListRow: View {
 
     private var attrs: String {
         switch row.kind {
-        case let .file(entry): entry.attrsFourCharacter
-        case .volume: "____"
+        case let .file(entry): entry.isParentLink ? "" : entry.attrsFourCharacter
+        case .volume: ""
         }
     }
 
@@ -317,27 +387,12 @@ private struct FileListRow: View {
         }
     }
 
-    private var sizeColor: Color {
-        switch row.kind {
-        case let .file(entry):
-            entry.isParentLink || entry.isDirectory ? Color(white: 0.45) : Color(white: 0.85)
-        case .volume:
-            Color(white: 0.45)
-        }
-    }
 
     @ViewBuilder
     private var descriptionView: some View {
         switch row.kind {
-        case .file:
-            EmptyView()
-        case let .volume(volume):
-            HStack(spacing: 6) {
-                VolumeUsageBar(usedRatio: usedRatio(for: volume))
-                Text("\(ByteCountFormatter.string(fromByteCount: volume.freeBytes, countStyle: .file)) 남음")
-                    .font(.system(size: 11).monospacedDigit())
-                    .foregroundStyle(Color(white: 0.78))
-            }
+        case .file, .volume:
+            Color.clear
         }
     }
 

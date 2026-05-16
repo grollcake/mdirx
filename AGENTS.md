@@ -72,8 +72,8 @@
 
 ```bash
 pkill -x MdirX 2>/dev/null
-xcodebuild build -scheme MdirX -destination 'platform=macOS' -derivedDataPath /tmp/mdirx-build -quiet
-open /tmp/mdirx-build/Build/Products/Debug/MdirX.app
+xcodebuild build -scheme MdirX -destination 'platform=macOS' -derivedDataPath dist -quiet
+open dist/Build/Products/Debug/MdirX.app
 ```
 
 - 빌드 실패 시 에러를 먼저 수정하고 재실행한다.

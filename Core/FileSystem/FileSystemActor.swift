@@ -5,7 +5,8 @@ func splitFileNameExtension(_ name: String) -> (String, String) {
     if name == "." || name == ".." { return (name, "") }
     guard let dot = name.lastIndex(of: ".") else { return (name, "") }
     if dot == name.startIndex {
-        return (name, "")
+        let ext = String(name[name.index(after: dot)...]).lowercased()
+        return ("", ext)
     }
     let base = String(name[..<dot])
     let ext = String(name[name.index(after: dot)...]).lowercased()

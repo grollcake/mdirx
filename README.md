@@ -23,7 +23,7 @@ MdirX는 macOS용 듀얼 패널 파일 매니저입니다. DOS 시절의 **Mdir 
 - 사용자 정의 함수키(F1~F12)
 - 라이트/다크 스킨
 
-> **M1 진행 중.** `FileSystemActor`·목록·경로 복원·`..` 부모 행·요약/상태바·색/볼륨 인프라 등은 [0516-1710](.plan/0516-1710-pane-list-nexusfile-look.done.md)·[0516-1728](.plan/0516-1728-parent-link-entry.done.md) 계획 기준 **완료**로 표시됨. NexusFile 룩 UI 보완은 [0516-1732](.plan/0516-1732-nexusfile-look-remediation.doing.md) 기준 진행 중이며, 다음 작업은 [.plan/STATUS.md](.plan/STATUS.md) 의 `todo`/`doing` 행을 따름.
+> **M1 진행 중.** 듀얼 패널·파일 목록·경로 복원·`..` 부모 행·NexusFile 룩 UI·다중 선택(3단계 토글)·마우스 활성화·경로 동기화 버튼 등 핵심 기능 완료. 다음 작업은 [.plan/STATUS.md](.plan/STATUS.md) 의 `todo` 행을 따름.
 
 ---
 
@@ -31,7 +31,6 @@ MdirX는 macOS용 듀얼 패널 파일 매니저입니다. DOS 시절의 **Mdir 
 
 | 항목 | 상태 |
 |---|---|
-| 단계 | M1 — 듀얼 패널 + 디렉터리 나열·키보드 네비게이션 |
 | 다음 마일스톤 | [.plan/STATUS.md](.plan/STATUS.md) 의 `doing`/`todo` (Nexus 룩 보완·다중 선택·이름변경/새 항목 등) |
 | 최소 macOS | 15.0 Sequoia |
 | 아키텍처 | Universal (Apple Silicon + Intel) |
@@ -54,6 +53,71 @@ MdirX는 macOS용 듀얼 패널 파일 매니저입니다. DOS 시절의 **Mdir 
 
 ---
 
+## 개발 빌드 및 실행
+
+### 요구 환경
+
+| 항목 | 버전 |
+|---|---|
+| macOS | 15.0 Sequoia 이상 |
+| Xcode | 26 이상 |
+| Swift | 6.3 이상 |
+
+### 빌드
+
+```bash
+# Debug 빌드 (개발용)
+xcodebuild \
+  -project MdirX.xcodeproj \
+  -scheme MdirX \
+  -configuration Debug \
+  -destination 'platform=macOS' \
+  -derivedDataPath dist \
+  build
+
+# Release 빌드
+xcodebuild \
+  -project MdirX.xcodeproj \
+  -scheme MdirX \
+  -configuration Release \
+  -destination 'platform=macOS' \
+  -derivedDataPath dist \
+  build
+```
+
+### 실행
+
+```bash
+# 빌드 후 앱 직접 실행
+open dist/Build/Products/Debug/MdirX.app
+
+# 또는 Release
+open dist/Build/Products/Release/MdirX.app
+```
+
+Xcode에서 열어 실행하려면 `MdirX.xcodeproj`를 열고 `⌘R`.
+
+### Xcode 프로젝트 재생성
+
+`project.pbxproj`는 스크립트로 생성됩니다. 소스 파일을 추가/삭제한 뒤에는 다시 실행해야 합니다.
+
+```bash
+python3 scripts/gen_xcode_pbx.py
+```
+
+### 테스트
+
+```bash
+# 단위 테스트
+xcodebuild \
+  -project MdirX.xcodeproj \
+  -scheme MdirX \
+  -destination 'platform=macOS' \
+  test
+```
+
+---
+
 ## NexusFile → MdirX 키맵 요약
 
 | 기능 | MdirX |
@@ -65,7 +129,7 @@ MdirX는 macOS용 듀얼 패널 파일 매니저입니다. DOS 시절의 **Mdir 
 | 패널 전환 | `Tab` |
 | 고급 이름변경 | `⇧⌥R` |
 | ZIP 해제 / 지능형 해제 | `⌘E` / `⌥Q` |
-| 선택 반전 | `⌥U` |
+| 전체 선택 토글 (파일→파일+폴더→해제) | `⌥U` |
 | QuickLook | `Space` |
 | 듀얼/단일 토글 | `⌘\` |
 
@@ -79,30 +143,32 @@ MdirX는 macOS용 듀얼 패널 파일 매니저입니다. DOS 시절의 **Mdir 
 mdirx/  (일부)
 ├── MdirX.xcodeproj/        # Xcode 프로젝트 (project.pbxproj ← scripts/gen_xcode_pbx.py)
 ├── App/                    # MdirXApp.swift
-├── Features/               # PLAN §4.1 골격 (.gitkeep)
-├── Core/
-├── DesignSystem/
+├── Features/               # DualPane, Pane 등 화면 단위
+├── Core/                   # FileSystemActor, Settings 등 도메인 로직
+├── DesignSystem/           # Tokens.swift (색상·폰트 토큰)
 ├── PlatformBridge/
 ├── Resources/
 ├── Tests/
 ├── MdirX/                  # MdirX.entitlements
 ├── scripts/
-├── README.md              # 이 문서
-├── AGENTS.md               # 에이전트 작업 규칙 ([CLAUDE.md](CLAUDE.md)와 동일 내용 하드링크)
+├── dist/                   # 빌드 출력 (xcodebuild -derivedDataPath dist) + settings.json (개발용)
+├── README.md               # 이 문서
+├── AGENTS.md               # 에이전트 작업 규칙
 ├── PLAN.md                 # 기술 계획 (아키텍처·키맵·마일스톤)
 ├── TODO.md                 # PLAN 기준 작업 목록 (체크박스)
 ├── DONE.md                 # 완료 요약
 ├── LICENSE                 # MIT
 ├── .plan/
-│   ├── README.md           # 계획 문서 규격(정본)
+│   ├── PLAN.md             # 계획 문서 규격 (정본)
 │   ├── STATUS.md           # 계획별 진행 한눈에 보기
-│   └── *.todo.md …         # 계획 본문 (파일명 규칙은 .plan/README 참고)
+│   └── *.todo.md …         # 계획 본문 (파일명 규칙은 .plan/PLAN.md 참고)
 └── docs/
     ├── PRD.md              # 제품 요구사항 문서
+    ├── requirements/       # 프로젝트 전체 생명주기 중요 요건 (REQUIREMENTS.md 등)
     └── learnings/          # 실수·올바른 해결 (영역별, 인덱스: learnings/learnings.md)
 ```
 
-> 로컬 검증(예): `swift 6.3.2`, `xcodebuild` — SDK macOS 15 타깃으로 `xcodebuild -project MdirX.xcodeproj -scheme MdirX -destination 'platform=macOS' build test` 가 통과하면 됩니다.
+> 로컬 검증(예): `swift 6.3.2`, `xcodebuild` — SDK macOS 15 타깃으로 `xcodebuild -project MdirX.xcodeproj -scheme MdirX -destination 'platform=macOS' -derivedDataPath dist build` 가 통과하면 됩니다.
 
 ---
 
@@ -119,18 +185,6 @@ mdirx/  (일부)
 | 종합 표 | 새 계획·상태 변경 시 **[`.plan/STATUS.md`](.plan/STATUS.md)** 를 같은 턴에 맞춘다 |
 
 에이전트/자동화는 **[`AGENTS.md`](AGENTS.md)** 를 따른다.
-
----
-
-## 로드맵
-
-| 마일스톤 | 기간 | 산출물 |
-|---|---|---|
-| **M1** | 2주 | 듀얼 패널·기본 FS 작업·키보드 네비게이션 (탭은 Phase 4) |
-| **M2** | 2주 | F10 점프·F11 즐겨찾기·고급 이름변경·검색 |
-| **M3** | 2주 | ZIP·QuickLook·FSEvents·함수키 카탈로그 |
-| **M4** | 1.5주 | 스킨/테마·환경설정·import/export |
-| **M5 (1.0)** | 1주 | 베타·서명·공증·DMG 배포 |
 
 ---
 

@@ -31,8 +31,8 @@ struct DirectoryEntry: Identifiable, Hashable, Sendable {
         let startDay = calendar.startOfDay(for: modificationDate)
         let refDay = calendar.startOfDay(for: reference)
         let days = calendar.dateComponents([.day], from: startDay, to: refDay).day ?? 999
-        if days >= 0, days <= 7 {
-            if days == 0 { return "0일 전" }
+        if days >= 0, days <= 10 {
+            if days == 0 { return "오늘" }
             return "\(days)일 전"
         }
         let f = DateFormatter()

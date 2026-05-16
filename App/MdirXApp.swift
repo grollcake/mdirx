@@ -12,5 +12,6 @@ struct MdirXApp: App {
                 .preferredColorScheme(.dark)
         }
         .defaultSize(width: 1000, height: 600)
+        .windowToolbarStyle(.unifiedCompact(showsTitle: true))
     }
 }
