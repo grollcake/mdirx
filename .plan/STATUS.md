@@ -18,3 +18,4 @@
 | [0516-1732-nexusfile-look-remediation.done.md](0516-1732-nexusfile-look-remediation.done.md) | 2026-05-16 17:32<br>2026-05-16 18:55 | done | ⚠️ 폐기 (→ 0516-1855) |
 | [0516-1746-rename-newfolder-newfile.todo.md](0516-1746-rename-newfolder-newfile.todo.md) | 2026-05-16 17:46<br>— | todo | — |
 | [0516-1855-nexus-look-exact.done.md](0516-1855-nexus-look-exact.done.md) | 2026-05-16 18:55<br>2026-05-16 20:12 | done | ✅ |
+| [0516-2120-remove-active-pane-border.todo.md](0516-2120-remove-active-pane-border.todo.md) | 2026-05-16 21:20<br>— | todo | — |
