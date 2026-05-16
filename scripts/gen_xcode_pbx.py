@@ -8,7 +8,7 @@ def uid() -> str:
 
 U = {k: uid() for k in [
     "PROJECT", "MAIN_GRP", "PROD_GRP", "FEAT_GRP", "DUAL_GRP", "PANE_GRP",
-    "CORE_PARENT", "CORE_PERSIST", "CORE_FS", "CORE_VOL", "DS_GRP",
+    "CORE_PARENT", "CORE_PERSIST", "CORE_FS", "CORE_VOL", "CORE_SETTINGS", "DS_GRP",
     "APP_GRP", "RES_GRP", "TEST_GRP",
     "MDIRX_SUPP", "TPSRC", "UTPSRC",
     "APP_PROD", "TEST_PROD", "UITEST_PROD",
@@ -19,11 +19,13 @@ U = {k: uid() for k in [
     "FR_PANE_COL", "FR_FILE_LIST", "FR_SUMMARY", "FR_STATUS",
     "FR_BREADCRUMB", "FR_PANE_HEADER", "FR_PANE_ROW", "FR_VOL_BADGE",
     "FR_TOKENS",
+    "FR_APPSETTINGS", "FR_COLORSETTINGS",
     # Unit tests
     "FR_SMOKE", "FR_BROWSER_TEST", "FR_FSTEST", "FR_PSTEST",
     "FR_BREAD_TEST", "FR_DBLCLICK_TEST", "FR_CURSOR_TEST",
     "FR_PANE_ROWS_TEST", "FR_PARENT_SYNTH_TEST",
     "FR_ATTRS_TEST", "FR_TIME_TEST", "FR_STATUSBAR_TEST",
+    "FR_APPSETTINGS_TEST",
     # UI tests
     "FR_UI", "FR_UIT_DUAL", "FR_UIT_NAV",
     "FR_UIT_MOUSE", "FR_UIT_PARENT", "FR_UIT_NEXUS",
@@ -34,11 +36,13 @@ U = {k: uid() for k in [
     "BF_PANE_COL", "BF_FILE_LIST", "BF_SUMMARY", "BF_STATUS",
     "BF_BREADCRUMB", "BF_PANE_HEADER", "BF_PANE_ROW", "BF_VOL_BADGE",
     "BF_TOKENS",
+    "BF_APPSETTINGS", "BF_COLORSETTINGS",
     # Build files - unit tests
     "BF_SMOKE", "BF_BROWSER_TEST", "BF_FSTEST", "BF_PSTEST",
     "BF_BREAD_TEST", "BF_DBLCLICK_TEST", "BF_CURSOR_TEST",
     "BF_PANE_ROWS_TEST", "BF_PARENT_SYNTH_TEST",
     "BF_ATTRS_TEST", "BF_TIME_TEST", "BF_STATUSBAR_TEST",
+    "BF_APPSETTINGS_TEST",
     # Build files - UI tests
     "BF_UI", "BF_UIT_DUAL", "BF_UIT_NAV",
     "BF_UIT_MOUSE", "BF_UIT_PARENT", "BF_UIT_NEXUS",
@@ -72,6 +76,8 @@ pbx = f"""// !$*UTF8*$!
 \t\t{u['BF_FS']} /* FileSystemActor.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_FS']}; }};
 \t\t{u['BF_VOL']} /* VolumeService.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_VOL']}; }};
 \t\t{u['BF_TOKENS']} /* Tokens.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_TOKENS']}; }};
+\t\t{u['BF_APPSETTINGS']} /* AppSettings.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_APPSETTINGS']}; }};
+\t\t{u['BF_COLORSETTINGS']} /* ColorSettings.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_COLORSETTINGS']}; }};
 \t\t{u['BF_BROWSER']} /* BrowserSession.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_BROWSER']}; }};
 \t\t{u['BF_DUAL']} /* DualPaneView.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_DUAL']}; }};
 \t\t{u['BF_PANE_ST']} /* PaneState.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_PANE_ST']}; }};
@@ -98,6 +104,7 @@ pbx = f"""// !$*UTF8*$!
 \t\t{u['BF_ATTRS_TEST']} /* AttrsFourCharacterTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_ATTRS_TEST']}; }};
 \t\t{u['BF_TIME_TEST']} /* TimeHHmmFormatTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_TIME_TEST']}; }};
 \t\t{u['BF_STATUSBAR_TEST']} /* StatusBarFormatTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_STATUSBAR_TEST']}; }};
+\t\t{u['BF_APPSETTINGS_TEST']} /* AppSettingsTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_APPSETTINGS_TEST']}; }};
 \t\t{u['BF_UI']} /* LaunchTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_UI']}; }};
 \t\t{u['BF_UIT_DUAL']} /* DualPaneTabToggleTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_UIT_DUAL']}; }};
 \t\t{u['BF_UIT_NAV']} /* FileListNavigationTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_UIT_NAV']}; }};
@@ -116,6 +123,8 @@ pbx = f"""// !$*UTF8*$!
 \t\t{u['FR_FS']} /* FileSystemActor.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSystemActor.swift; sourceTree = "<group>"; }};
 \t\t{u['FR_VOL']} /* VolumeService.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolumeService.swift; sourceTree = "<group>"; }};
 \t\t{u['FR_TOKENS']} /* Tokens.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tokens.swift; sourceTree = "<group>"; }};
+		{u['FR_APPSETTINGS']} /* AppSettings.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; }};
+		{u['FR_COLORSETTINGS']} /* ColorSettings.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorSettings.swift; sourceTree = "<group>"; }};
 \t\t{u['FR_BROWSER']} /* BrowserSession.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserSession.swift; sourceTree = "<group>"; }};
 \t\t{u['FR_DUAL']} /* DualPaneView.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DualPaneView.swift; sourceTree = "<group>"; }};
 \t\t{u['FR_PANE_ST']} /* PaneState.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneState.swift; sourceTree = "<group>"; }};
@@ -139,6 +148,7 @@ pbx = f"""// !$*UTF8*$!
 \t\t{u['FR_ATTRS_TEST']} /* AttrsFourCharacterTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttrsFourCharacterTests.swift; sourceTree = "<group>"; }};
 \t\t{u['FR_TIME_TEST']} /* TimeHHmmFormatTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeHHmmFormatTests.swift; sourceTree = "<group>"; }};
 \t\t{u['FR_STATUSBAR_TEST']} /* StatusBarFormatTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarFormatTests.swift; sourceTree = "<group>"; }};
+		{u['FR_APPSETTINGS_TEST']} /* AppSettingsTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsTests.swift; sourceTree = "<group>"; }};
 \t\t{u['FR_UI']} /* LaunchTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchTests.swift; sourceTree = "<group>"; }};
 \t\t{u['FR_UIT_DUAL']} /* DualPaneTabToggleTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DualPaneTabToggleTests.swift; sourceTree = "<group>"; }};
 \t\t{u['FR_UIT_NAV']} /* FileListNavigationTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileListNavigationTests.swift; sourceTree = "<group>"; }};
@@ -234,6 +244,7 @@ pbx = f"""// !$*UTF8*$!
 \t\t\t\t{u['CORE_PERSIST']},
 \t\t\t\t{u['CORE_FS']},
 \t\t\t\t{u['CORE_VOL']},
+\t\t\t\t{u['CORE_SETTINGS']},
 \t\t\t);
 \t\t\tpath = Core;
 \t\t\tsourceTree = "<group>";
@@ -259,6 +270,15 @@ pbx = f"""// !$*UTF8*$!
 \t\t\tpath = Volumes;
 \t\t\tsourceTree = "<group>";
 \t\t}};
+		{u['CORE_SETTINGS']} /* Settings */ = {{
+			isa = PBXGroup;
+			children = (
+				{u['FR_APPSETTINGS']},
+				{u['FR_COLORSETTINGS']},
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		}};
 \t\t{u['RES_GRP']} /* Resources */ = {{
 \t\t\tisa = PBXGroup;
 \t\t\tchildren = (
@@ -293,6 +313,7 @@ pbx = f"""// !$*UTF8*$!
 \t\t\t\t{u['FR_ATTRS_TEST']},
 \t\t\t\t{u['FR_TIME_TEST']},
 \t\t\t\t{u['FR_STATUSBAR_TEST']},
+\t\t\t\t{u['FR_APPSETTINGS_TEST']},
 \t\t\t);
 \t\t\tpath = UnitTests;
 \t\t\tsourceTree = "<group>";
@@ -404,6 +425,8 @@ pbx = f"""// !$*UTF8*$!
 \t\t\t\t{u['BF_FS']},
 \t\t\t\t{u['BF_VOL']},
 \t\t\t\t{u['BF_TOKENS']},
+\t\t\t\t{u['BF_APPSETTINGS']},
+\t\t\t\t{u['BF_COLORSETTINGS']},
 \t\t\t\t{u['BF_BROWSER']},
 \t\t\t\t{u['BF_PANE_ST']},
 \t\t\t\t{u['BF_DUAL']},
@@ -486,6 +509,7 @@ pbx = f"""// !$*UTF8*$!
 \t\t\t\tSWIFT_EMIT_LOC_STRINGS = YES;
 \t\t\t\tSWIFT_STRICT_CONCURRENCY = complete;
 \t\t\t\tSWIFT_VERSION = 6.0;
+\t\t\t\tCONFIGURATION_BUILD_DIR = "$(SRCROOT)/dist";
 \t\t\t}};
 \t\t\tname = Debug;
 \t\t}};
@@ -513,6 +537,7 @@ pbx = f"""// !$*UTF8*$!
 \t\t\t\tSWIFT_EMIT_LOC_STRINGS = YES;
 \t\t\t\tSWIFT_STRICT_CONCURRENCY = complete;
 \t\t\t\tSWIFT_VERSION = 6.0;
+\t\t\t\tCONFIGURATION_BUILD_DIR = "$(SRCROOT)/dist";
 \t\t\t}};
 \t\t\tname = Release;
 \t\t}};

@@ -65,6 +65,7 @@ struct DualPaneView: View {
         }
         .frame(minWidth: 800, minHeight: 500)
         .background(Color.black)
+        .toolbarBackground(FileColorToken.neutralBackground, for: .windowToolbar)
         .focusable()
         .focused($keyHandlingFocused)
         .focusEffectDisabled()
