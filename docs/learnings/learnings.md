@@ -54,6 +54,7 @@
 - [xcode-spm/gen-pbxproj-literal-tab-vs-actual-tab.md](xcode-spm/gen-pbxproj-literal-tab-vs-actual-tab.md) — `gen_xcode_pbx.py` 에 리터럴 `\t` 와 실제 탭이 혼용됨. Edit 툴 매칭 실패 시 `repr()` 확인 후 Python 스크립트로 치환.
 - [swiftui/onkeypress-action-closure-skips-function-keys.md](swiftui/onkeypress-action-closure-skips-function-keys.md) — `.onKeyPress(action:)` 클로저는 펑션 키(F1~F12)를 라우팅 안 함. `.onKeyPress(keys: [...])` 명시 등록 오버로드 사용.
 - [swiftui/onkeypress-character-becomes-hangul-jamo-under-korean-ime.md](swiftui/onkeypress-character-becomes-hangul-jamo-under-korean-ime.md) — 한글 IME ON 시 modifier 동반에도 `press.key.character`가 자모(ㅣ/ㅏ…)로 변환. QWERTY 역매핑 헬퍼로 정규화 후 비교.
+- [swiftui/popover-highlight-state-is-not-keyboard-focus-or-scroll.md](swiftui/popover-highlight-state-is-not-keyboard-focus-or-scroll.md) — popover 목록 highlight index만 바꿔서는 키 입력·스크롤이 따라오지 않는다. 리스트 focus와 `ScrollViewReader.scrollTo`를 별도로 동기화.
 - [xcode-spm/gen-pbxproj-new-file-registration-checklist.md](xcode-spm/gen-pbxproj-new-file-registration-checklist.md) — **[DEPRECATED]** 2026-05-17 자동 스캔 도입으로 폐기. 새 Swift 파일은 `python3 scripts/gen_xcode_pbx.py` 한 번이면 끝.
 - [swift/print-stdout-not-captured-for-gui-app-use-nslog.md](swift/print-stdout-not-captured-for-gui-app-use-nslog.md) — GUI 앱에서 `print()`는 stdout 버퍼링으로 묻힐 수 있음. 임시 디버그 로그는 `NSLog` 사용.
 

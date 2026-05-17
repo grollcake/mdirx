@@ -80,6 +80,19 @@ func focusListPreviousFromZeroGoesToNil() {
 
 @Test
 @MainActor
+func focusCanRoundTripBetweenFieldAndList() {
+    let pane = makePane()
+    pane.beginAddressEditing(items: AddressListItems(frequent: [u("/a"), u("/b")], recent: []))
+    pane.focusListFirst()
+    #expect(pane.addressListFocusIndex == 0)
+    pane.focusListPrevious()
+    #expect(pane.addressListFocusIndex == nil)
+    pane.focusListFirst()
+    #expect(pane.addressListFocusIndex == 0)
+}
+
+@Test
+@MainActor
 func addressListFocusedURLReadsFlat() {
     let pane = makePane()
     pane.beginAddressEditing(items: AddressListItems(frequent: [u("/a")], recent: [u("/b"), u("/c")]))

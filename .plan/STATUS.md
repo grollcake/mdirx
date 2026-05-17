@@ -30,3 +30,5 @@
 | [0517-1830-pbxgen-autoscan-and-keybinding-table.done.md](0517-1830-pbxgen-autoscan-and-keybinding-table.done.md) | 2026-05-17 18:30<br>2026-05-17 18:55 | done | ✅ |
 | [0517-1905-address-popover.done.md](0517-1905-address-popover.done.md) | 2026-05-17 19:05<br>2026-05-17 19:40 | done | ✅ |
 | [0517-2030-audit-fixes.done.md](0517-2030-audit-fixes.done.md) | 2026-05-17 20:30<br>2026-05-17 20:50 | done | ✅ |
+| [0517-2206-address-popover-keyfocus.done.md](0517-2206-address-popover-keyfocus.done.md) | 2026-05-17 22:06<br>2026-05-17 22:12 | done | ✅ |
+| [0517-2210-address-popover-scrollsync.done.md](0517-2210-address-popover-scrollsync.done.md) | 2026-05-17 22:10<br>2026-05-17 22:12 | done | ✅ |

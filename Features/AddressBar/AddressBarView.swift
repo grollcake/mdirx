@@ -57,6 +57,7 @@ struct AddressPopoverView: View {
     let onTabToggleActivePane: @MainActor () -> Void
 
     @FocusState private var fieldFocused: Bool
+    @FocusState private var listFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -71,18 +72,14 @@ struct AddressPopoverView: View {
                 )
                 .focused($fieldFocused)
                 .onAppear {
-                    fieldFocused = (state.addressListFocusIndex == nil)
-                    selectAllInFocusedField()
+                    syncKeyboardFocus(to: state.addressListFocusIndex)
                 }
                 .onChange(of: state.addressListFocusIndex) { _, new in
-                    let nowOnField = (new == nil)
-                    fieldFocused = nowOnField
-                    if nowOnField { selectAllInFocusedField() }
+                    syncKeyboardFocus(to: new)
                 }
                 // ⌘L 재누름 (address-bar-history.md R5) → TextField로 복귀 + 전체 선택
                 .onChange(of: state.addressFocusToken) { _, _ in
-                    fieldFocused = true
-                    selectAllInFocusedField()
+                    syncKeyboardFocus(to: nil)
                 }
                 .onSubmit {
                     Task { await state.submitAddressDraft(via: fs) }
@@ -101,24 +98,34 @@ struct AddressPopoverView: View {
 
             if !state.addressListFlat.isEmpty {
                 Divider()
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 0) {
-                        if !state.addressListItems.frequent.isEmpty {
-                            sectionHeader("자주 방문")
-                            ForEach(Array(state.addressListItems.frequent.enumerated()), id: \.element.path) { offset, url in
-                                row(url: url, index: offset)
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 0) {
+                            if !state.addressListItems.frequent.isEmpty {
+                                sectionHeader("자주 방문")
+                                ForEach(Array(state.addressListItems.frequent.enumerated()), id: \.element.path) { offset, url in
+                                    row(url: url, index: offset)
+                                        .id(offset)
+                                }
                             }
-                        }
-                        if !state.addressListItems.recent.isEmpty {
-                            sectionHeader("최근 방문")
-                            ForEach(Array(state.addressListItems.recent.enumerated()), id: \.element.path) { offset, url in
-                                let globalIndex = state.addressListItems.frequent.count + offset
-                                row(url: url, index: globalIndex)
+                            if !state.addressListItems.recent.isEmpty {
+                                sectionHeader("최근 방문")
+                                ForEach(Array(state.addressListItems.recent.enumerated()), id: \.element.path) { offset, url in
+                                    let globalIndex = state.addressListItems.frequent.count + offset
+                                    row(url: url, index: globalIndex)
+                                        .id(globalIndex)
+                                }
                             }
                         }
                     }
+                    .onChange(of: state.addressListFocusIndex) { _, new in
+                        scrollFocusedRow(new, with: proxy)
+                    }
                 }
                 .frame(maxHeight: 220)
+                .focusable()
+                .focused($listFocused)
+                .focusEffectDisabled()
             }
         }
         .padding(8)
@@ -197,5 +204,19 @@ struct AddressPopoverView: View {
             }
         }
         .accessibilityIdentifier("pane.\(state.slot.rawValue).address.row.\(index)")
+    }
+
+    private func syncKeyboardFocus(to listIndex: Int?) {
+        let shouldFocusList = listIndex != nil
+        fieldFocused = !shouldFocusList
+        listFocused = shouldFocusList
+        if !shouldFocusList { selectAllInFocusedField() }
+    }
+
+    private func scrollFocusedRow(_ index: Int?, with proxy: ScrollViewProxy) {
+        guard let index, state.addressListFlat.indices.contains(index) else { return }
+        withAnimation(.easeOut(duration: 0.08)) {
+            proxy.scrollTo(index, anchor: .center)
+        }
     }
 }
