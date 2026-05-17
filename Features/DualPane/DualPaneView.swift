@@ -77,18 +77,19 @@ struct DualPaneView: View {
         .onAppear { keyHandlingFocused = true }
         .onKeyPress { press in
             guard session.current.editing == nil else { return .ignored }
+            let qwerty = KoreanShortcutNormalizer.qwertyCharacter(for: press)
             if session.current.addressEditing {
                 if press.key == .escape {
                     session.current.cancelAddressEditing()
                     return .handled
                 }
-                if press.key == KeyEquivalent("l"), press.modifiers.contains(.command) {
+                if qwerty == "l", press.modifiers.contains(.command) {
                     session.current.beginAddressEditing()
                     return .handled
                 }
                 return .ignored
             }
-            if press.key == KeyEquivalent("l"), press.modifiers.contains(.command) {
+            if qwerty == "l", press.modifiers.contains(.command) {
                 session.current.beginAddressEditing()
                 return .handled
             }
@@ -126,11 +127,11 @@ struct DualPaneView: View {
                 session.current.clearSelection()
                 return .handled
             }
-            if press.key == KeyEquivalent("u"), press.modifiers.contains(.option) {
+            if qwerty == "u", press.modifiers.contains(.option) {
                 session.current.selectAllToggle()
                 return .handled
             }
-            if press.key == KeyEquivalent("a"), press.modifiers.contains(.command) {
+            if qwerty == "a", press.modifiers.contains(.command) {
                 session.current.selectAllToggle()
                 return .handled
             }
@@ -138,18 +139,18 @@ struct DualPaneView: View {
                 Task { await session.current.ascend(via: session.fs) }
                 return .handled
             }
-            if press.key == KeyEquivalent("z") {
+            if qwerty == "z" {
                 if press.modifiers.contains(.command) || press.modifiers.contains(.option) {
                     Task { await session.current.toggleHidden(via: session.fs) }
                     return .handled
                 }
             }
             // ⌥K = new folder, ⌃N = new file (F2/F5/F6은 아래 keys: 오버로드에서 처리)
-            if press.key == KeyEquivalent("k"), press.modifiers.contains(.option) {
+            if qwerty == "k", press.modifiers.contains(.option) {
                 session.current.requestNewFolder()
                 return .handled
             }
-            if press.key == KeyEquivalent("n"), press.modifiers.contains(.control) {
+            if qwerty == "n", press.modifiers.contains(.control) {
                 session.current.requestNewFile()
                 return .handled
             }

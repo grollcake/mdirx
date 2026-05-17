@@ -25,3 +25,4 @@
 | [0517-0919-f5-f6-file-ops.done.md](0517-0919-f5-f6-file-ops.done.md) | 2026-05-17 09:19<br>2026-05-17 17:20 | done | ✅ |
 | [0517-0934-file-delete.todo.md](0517-0934-file-delete.todo.md) | 2026-05-17 09:34<br>— | todo | — |
 | [0517-0938-addressbar-history.done.md](0517-0938-addressbar-history.done.md) | 2026-05-17 09:38<br>2026-05-17 17:46 | done | ✅ |
+| [0517-1750-shortcuts-broken-in-korean-ime.done.md](0517-1750-shortcuts-broken-in-korean-ime.done.md) | 2026-05-17 17:50<br>2026-05-17 18:10 | done | ✅ |

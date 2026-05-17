@@ -11,3 +11,4 @@
 |------|------|-----------|
 | [select-all-toggle.md](select-all-toggle.md) | 전체 선택 토글 (alt+u) | 3단계 순환(파일→파일+폴더→해제), 드라이브 항목 항상 제외 |
 | [file-list-columns.md](file-list-columns.md) | 파일리스트 컬럼 UI | 행 유형별 컬럼 구성·정렬·간격, 사이즈 표기법(533 B / 1.5 KB …) |
+| [shortcuts.md](shortcuts.md) | 단축키 IME-불변 | modifier+문자 단축키는 한글 IME에서도 동작 — `KoreanShortcutNormalizer`로 정규화 후 비교 |

@@ -15,7 +15,7 @@ U = {k: uid() for k in [
     # App sources
     "FR_APP", "FR_MODEL", "FR_ASSETS", "FR_ENT", "FR_EN", "FR_KO",
     "FR_ENTRY", "FR_FS", "FR_VOL",
-    "FR_BROWSER", "FR_DUAL", "FR_PANE_ST",
+    "FR_BROWSER", "FR_DUAL", "FR_PANE_ST", "FR_KOREAN_NORM",
     "FR_PANE_COL", "FR_FILE_LIST", "FR_SUMMARY", "FR_STATUS",
     "FR_BREADCRUMB", "FR_PANE_HEADER", "FR_PANE_ROW", "FR_VOL_BADGE",
     "FR_TOKENS",
@@ -29,7 +29,7 @@ U = {k: uid() for k in [
     "FR_ATTRS_TEST", "FR_TIME_TEST", "FR_STATUSBAR_TEST",
     "FR_APPSETTINGS_TEST", "FR_PANE_SEL_TEST",
     "FR_NAME_EDIT_TEST",     "FR_FS_WRITE_TEST",
-    "FR_PATH_HIST_TEST",
+    "FR_PATH_HIST_TEST", "FR_KOREAN_NORM_TEST",
     # UI tests
     "FR_UI", "FR_UIT_DUAL", "FR_UIT_NAV",
     "FR_UIT_MOUSE", "FR_UIT_PARENT", "FR_UIT_NEXUS",
@@ -37,7 +37,7 @@ U = {k: uid() for k in [
     # Build files - app
     "BF_APP", "BF_MODEL", "BF_ASSETS", "BF_EN", "BF_KO",
     "BF_ENTRY", "BF_FS", "BF_VOL",
-    "BF_BROWSER", "BF_DUAL", "BF_PANE_ST",
+    "BF_BROWSER", "BF_DUAL", "BF_PANE_ST", "BF_KOREAN_NORM",
     "BF_PANE_COL", "BF_FILE_LIST", "BF_SUMMARY", "BF_STATUS",
     "BF_BREADCRUMB", "BF_PANE_HEADER", "BF_PANE_ROW", "BF_VOL_BADGE",
     "BF_TOKENS",
@@ -51,7 +51,7 @@ U = {k: uid() for k in [
     "BF_ATTRS_TEST", "BF_TIME_TEST", "BF_STATUSBAR_TEST",
     "BF_APPSETTINGS_TEST", "BF_PANE_SEL_TEST",
     "BF_NAME_EDIT_TEST",     "BF_FS_WRITE_TEST",
-    "BF_PATH_HIST_TEST",
+    "BF_PATH_HIST_TEST", "BF_KOREAN_NORM_TEST",
     # Build files - UI tests
     "BF_UI", "BF_UIT_DUAL", "BF_UIT_NAV",
     "BF_UIT_MOUSE", "BF_UIT_PARENT", "BF_UIT_NEXUS",
@@ -91,6 +91,7 @@ pbx = f"""// !$*UTF8*$!
 \t\t{u['BF_BROWSER']} /* BrowserSession.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_BROWSER']}; }};
 \t\t{u['BF_DUAL']} /* DualPaneView.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_DUAL']}; }};
 \t\t{u['BF_PANE_ST']} /* PaneState.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_PANE_ST']}; }};
+\t\t{u['BF_KOREAN_NORM']} /* KoreanShortcutNormalizer.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_KOREAN_NORM']}; }};
 \t\t{u['BF_PANE_COL']} /* PaneColumnView.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_PANE_COL']}; }};
 \t\t{u['BF_FILE_LIST']} /* FileListView.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_FILE_LIST']}; }};
 \t\t{u['BF_SUMMARY']} /* PaneSummaryView.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_SUMMARY']}; }};
@@ -119,6 +120,7 @@ pbx = f"""// !$*UTF8*$!
 \t\t{u['BF_NAME_EDIT_TEST']} /* NameEditTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_NAME_EDIT_TEST']}; }};
 \t\t{u['BF_FS_WRITE_TEST']} /* FileSystemActorWriteTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_FS_WRITE_TEST']}; }};
 \t\t{u['BF_PATH_HIST_TEST']} /* PathHistoryStoreTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_PATH_HIST_TEST']}; }};
+\t\t{u['BF_KOREAN_NORM_TEST']} /* KoreanShortcutNormalizerTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_KOREAN_NORM_TEST']}; }};
 \t\t{u['BF_NAME_EDIT_MODAL']} /* NameEditModal.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_NAME_EDIT_MODAL']}; }};
 \t\t{u['BF_PATH_ENTRY']} /* PathHistoryEntry.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_PATH_ENTRY']}; }};
 \t\t{u['BF_PATH_STORE']} /* PathHistoryStore.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_PATH_STORE']}; }};
@@ -148,6 +150,7 @@ pbx = f"""// !$*UTF8*$!
 \t\t{u['FR_BROWSER']} /* BrowserSession.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserSession.swift; sourceTree = "<group>"; }};
 \t\t{u['FR_DUAL']} /* DualPaneView.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DualPaneView.swift; sourceTree = "<group>"; }};
 \t\t{u['FR_PANE_ST']} /* PaneState.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneState.swift; sourceTree = "<group>"; }};
+\t\t{u['FR_KOREAN_NORM']} /* KoreanShortcutNormalizer.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoreanShortcutNormalizer.swift; sourceTree = "<group>"; }};
 \t\t{u['FR_PANE_COL']} /* PaneColumnView.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneColumnView.swift; sourceTree = "<group>"; }};
 \t\t{u['FR_FILE_LIST']} /* FileListView.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileListView.swift; sourceTree = "<group>"; }};
 \t\t{u['FR_SUMMARY']} /* PaneSummaryView.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneSummaryView.swift; sourceTree = "<group>"; }};
@@ -173,6 +176,7 @@ pbx = f"""// !$*UTF8*$!
 \t\t{u['FR_NAME_EDIT_TEST']} /* NameEditTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NameEditTests.swift; sourceTree = "<group>"; }};
 \t\t{u['FR_FS_WRITE_TEST']} /* FileSystemActorWriteTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSystemActorWriteTests.swift; sourceTree = "<group>"; }};
 \t\t{u['FR_PATH_HIST_TEST']} /* PathHistoryStoreTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathHistoryStoreTests.swift; sourceTree = "<group>"; }};
+\t\t{u['FR_KOREAN_NORM_TEST']} /* KoreanShortcutNormalizerTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoreanShortcutNormalizerTests.swift; sourceTree = "<group>"; }};
 \t\t{u['FR_NAME_EDIT_MODAL']} /* NameEditModal.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NameEditModal.swift; sourceTree = "<group>"; }};
 \t\t{u['FR_PATH_ENTRY']} /* PathHistoryEntry.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathHistoryEntry.swift; sourceTree = "<group>"; }};
 \t\t{u['FR_PATH_STORE']} /* PathHistoryStore.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathHistoryStore.swift; sourceTree = "<group>"; }};
@@ -259,6 +263,7 @@ pbx = f"""// !$*UTF8*$!
 \t\t\t\t{u['FR_BROWSER']},
 \t\t\t\t{u['FR_PANE_ST']},
 \t\t\t\t{u['FR_DUAL']},
+\t\t\t\t{u['FR_KOREAN_NORM']},
 \t\t\t);
 \t\t\tpath = DualPane;
 \t\t\tsourceTree = "<group>";
@@ -371,6 +376,7 @@ pbx = f"""// !$*UTF8*$!
 \t\t\t\t{u['FR_NAME_EDIT_TEST']},
 \t\t\t\t{u['FR_FS_WRITE_TEST']},
 \t\t\t\t{u['FR_PATH_HIST_TEST']},
+\t\t\t\t{u['FR_KOREAN_NORM_TEST']},
 \t\t\t);
 \t\t\tpath = UnitTests;
 \t\t\tsourceTree = "<group>";
@@ -490,6 +496,7 @@ pbx = f"""// !$*UTF8*$!
 \t\t\t\t{u['BF_BROWSER']},
 \t\t\t\t{u['BF_PANE_ST']},
 \t\t\t\t{u['BF_DUAL']},
+\t\t\t\t{u['BF_KOREAN_NORM']},
 \t\t\t\t{u['BF_BREADCRUMB']},
 \t\t\t\t{u['BF_FILE_LIST']},
 \t\t\t\t{u['BF_PANE_COL']},
@@ -525,6 +532,7 @@ pbx = f"""// !$*UTF8*$!
 \t\t\t\t{u['BF_NAME_EDIT_TEST']},
 \t\t\t\t{u['BF_FS_WRITE_TEST']},
 \t\t\t\t{u['BF_PATH_HIST_TEST']},
+\t\t\t\t{u['BF_KOREAN_NORM_TEST']},
 \t\t\t);
 \t\t\trunOnlyForDeploymentPostprocessing = 0;
 \t\t}};
