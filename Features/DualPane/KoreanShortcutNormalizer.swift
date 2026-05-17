@@ -8,12 +8,18 @@ import SwiftUI
 /// 자모 매핑 테이블 밖이거나 이미 ASCII면 원본을 그대로 돌려준다.
 enum KoreanShortcutNormalizer {
     static func qwertyCharacter(for press: KeyPress) -> Character {
-        let hasModifier = press.modifiers.contains(.command)
-            || press.modifiers.contains(.option)
-            || press.modifiers.contains(.control)
-        guard hasModifier else { return press.key.character }
-        guard let scalar = press.key.character.unicodeScalars.first else { return press.key.character }
-        return hangulToQwerty[scalar] ?? press.key.character
+        normalize(character: press.key.character, modifiers: press.modifiers)
+    }
+
+    /// `qwertyCharacter(for:)`의 테스트 가능한 핵심 — `KeyPress`는 SwiftUI 내부 전용
+    /// 이니셜라이저만 가지므로 단위 테스트에서 직접 생성할 수 없다.
+    static func normalize(character: Character, modifiers: EventModifiers) -> Character {
+        let hasModifier = modifiers.contains(.command)
+            || modifiers.contains(.option)
+            || modifiers.contains(.control)
+        guard hasModifier else { return character }
+        guard let scalar = character.unicodeScalars.first else { return character }
+        return hangulToQwerty[scalar] ?? character
     }
 
     static let hangulToQwerty: [Unicode.Scalar: Character] = [

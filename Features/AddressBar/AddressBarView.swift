@@ -5,11 +5,9 @@ struct PathHistoryMenuButton: View {
     let pathHistory: PathHistoryStore
     let onPick: @MainActor (URL) -> Void
 
-    private var sections: (frequent: [URL], recent: [URL]) {
-        (try? pathHistory.menuURLs(for: pane)) ?? ([], [])
-    }
-
     var body: some View {
+        let sections: (frequent: [URL], recent: [URL]) =
+            (try? pathHistory.menuURLs(for: pane)) ?? (frequent: [], recent: [])
         Menu {
             if !sections.frequent.isEmpty {
                 Section("자주 방문") {

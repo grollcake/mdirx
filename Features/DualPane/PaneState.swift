@@ -85,7 +85,7 @@ final class PaneState {
               let entry = entries.first(where: { $0.id == sel })
         else {
             if let volume = mountedVolumes.first(where: { $0.id == cursorID }) {
-                await jumpToDirectory(volume.id.resolvingSymlinksInPath(), via: fs)
+                await jumpToDirectory(volume.id, via: fs)
             }
             return
         }
@@ -96,7 +96,7 @@ final class PaneState {
         }
 
         guard entry.isDirectory else { return }
-        await jumpToDirectory(entry.url.resolvingSymlinksInPath(), via: fs)
+        await jumpToDirectory(entry.url, via: fs)
     }
 
     func navigate(to url: URL, via fs: FileSystemActor) async {
@@ -139,7 +139,7 @@ final class PaneState {
 
     func handleDoubleClick(via fs: FileSystemActor, openFile: (URL) -> Bool) async {
         if let volume = mountedVolumes.first(where: { $0.id == cursorID }) {
-            await jumpToDirectory(volume.id.resolvingSymlinksInPath(), via: fs)
+            await jumpToDirectory(volume.id, via: fs)
             return
         }
 
@@ -149,7 +149,7 @@ final class PaneState {
         case .ascend:
             await ascend(via: fs)
         case let .navigateMountedVolume(volumeURL):
-            await jumpToDirectory(volumeURL.resolvingSymlinksInPath(), via: fs)
+            await jumpToDirectory(volumeURL, via: fs)
         case .enterDirectory:
             await enter(via: fs)
         case let .openFile(url):
@@ -204,10 +204,6 @@ final class PaneState {
         cursorID = rows[j].id
     }
 
-    private func isSelectable(_ id: URL) -> Bool {
-        selectableIDs.contains(id)
-    }
-
     func operationItemURLs() -> [URL] {
         let allowed = Set(selectableIDs)
         let selected = selection.filter { allowed.contains($0) }
@@ -221,7 +217,7 @@ final class PaneState {
     }
 
     func toggleAtCursor() {
-        guard let cur = cursorID, isSelectable(cur) else { return }
+        guard let cur = cursorID, selectableIDs.contains(cur) else { return }
         if selection.contains(cur) {
             selection.remove(cur)
         } else {
@@ -279,7 +275,7 @@ final class PaneState {
 
     func toggleSingle(at clickedID: URL) {
         cursorID = clickedID
-        guard isSelectable(clickedID) else { return }
+        guard selectableIDs.contains(clickedID) else { return }
         if selection.contains(clickedID) {
             selection.remove(clickedID)
         } else {

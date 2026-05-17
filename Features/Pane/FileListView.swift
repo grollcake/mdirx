@@ -18,11 +18,12 @@ struct FileListView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 GeometryReader { proxy in
-                    let layout = FileListLayout.available(in: proxy.size.width, rows: state.paneRows)
+                    let rows = state.paneRows
+                    let layout = FileListLayout.available(in: proxy.size.width, rows: rows)
                     VStack(spacing: 0) {
                         ScrollView {
                             LazyVStack(alignment: .leading, spacing: 0) {
-                                ForEach(state.paneRows) { row in
+                                ForEach(rows) { row in
                                     FileListRow(
                                         state: state,
                                         row: row,
@@ -57,6 +58,17 @@ private struct FileListLayout {
     static let outerPadding: CGFloat = 6
     static let rowHeight: CGFloat = 20
 
+    // 고정 컬럼 폭 (단위 pt) — 표는 docs/requirements/file-list-columns.md 참고
+    static let selectionMarkerWidth: CGFloat = 6
+    static let iconWidth: CGFloat = 14
+    static let extWidth: CGFloat = 52
+    static let sizeWidth: CGFloat = 56
+    static let timeWidth: CGFloat = 36
+    static let attrsWidth: CGFloat = 36
+
+    // 그룹 간 간격: 좌측 그룹 내 spacing 8 × 2 + mid 12 + 우측 그룹 내 spacing 12 × 5 = 88
+    static let totalSpacing: CGFloat = 88
+
     // dateWidth: "yyyy-MM-dd" 문자열을 monospacedDigit size 11 로 한 번만 측정
     static let dateWidth: CGFloat = {
         let attrs: [NSAttributedString.Key: Any] = [
@@ -65,22 +77,21 @@ private struct FileListLayout {
         return ceil(("2026-05-17" as NSString).size(withAttributes: attrs).width) + 4
     }()
 
-    let selectionMarkerWidth: CGFloat = 6
-    let iconWidth: CGFloat = 14
-    let extWidth: CGFloat = 52
-    let sizeWidth: CGFloat = 56
+    static let fixedColumnsWidth: CGFloat =
+        selectionMarkerWidth + iconWidth + extWidth + sizeWidth + dateWidth + timeWidth + attrsWidth
+
+    var selectionMarkerWidth: CGFloat { Self.selectionMarkerWidth }
+    var iconWidth: CGFloat { Self.iconWidth }
+    var extWidth: CGFloat { Self.extWidth }
+    var sizeWidth: CGFloat { Self.sizeWidth }
     var dateWidth: CGFloat { Self.dateWidth }
-    let timeWidth: CGFloat = 36
-    let attrsWidth: CGFloat = 36
+    var timeWidth: CGFloat { Self.timeWidth }
+    var attrsWidth: CGFloat { Self.attrsWidth }
     let nameWidth: CGFloat
     let descriptionWidth: CGFloat
 
     static func available(in totalWidth: CGFloat, rows: [PaneRow]) -> FileListLayout {
-        // fixed = 6+14+52+56+dateWidth+36+36
-        // spacing: left-group 2×8=16, mid 1×12=12, right-group 5×12=60 → 88
-        let fixed = 6 + 14 + 52 + 56 + Self.dateWidth + 36 + 36
-        let spacing: CGFloat = 88
-        let forFlexible = max(0, totalWidth - outerPadding * 2 - fixed - spacing)
+        let forFlexible = max(0, totalWidth - outerPadding * 2 - fixedColumnsWidth - totalSpacing)
 
         let nameAttrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: 12, weight: .regular)
