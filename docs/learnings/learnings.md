@@ -48,3 +48,6 @@
 - [swiftui/foreach-duplicate-url-id-when-symlink-meets-mounted-volume.md](swiftui/foreach-duplicate-url-id-when-symlink-meets-mounted-volume.md) — 심볼릭이 mounted volume 과 같은 URL 을 가지면 `ForEach` 가 한쪽만 렌더링해 행 번호가 뒤죽박죽. 합칠 때 id dedupe + 1..N 재번호.
 - [swiftui/ismountedvolume-flag-always-false-dedup-mismatch.md](swiftui/ismountedvolume-flag-always-false-dedup-mismatch.md) — `isMountedVolume` 플래그는 항상 `false`라 신뢰 불가. 드라이브 제외는 `mountedVolumes.map(\.id)` 집합과 대조해야 `paneRows` dedup과 일치.
 - [swiftui/select-all-must-exclude-volumes-via-url-set.md](swiftui/select-all-must-exclude-volumes-via-url-set.md) — 일괄 선택(복사·이동·삭제 포함)은 `volumeIDs` URL 집합으로 볼륨을 명시 제외해야 한다.
+- [swiftui/onkeypress-consumed-by-parent-when-sheet-is-open.md](swiftui/onkeypress-consumed-by-parent-when-sheet-is-open.md) — sheet 열려 있어도 부모 `.onKeyPress` 가 키를 먼저 소비. `.ignored` 반환으로 sheet 에 전달.
+- [xcode-spm/test-host-deriveddata-mismatch-with-custom-build-dir.md](xcode-spm/test-host-deriveddata-mismatch-with-custom-build-dir.md) — `CONFIGURATION_BUILD_DIR=dist` 사용 시 build·test 를 같은 `-derivedDataPath` 로 묶지 않으면 TEST_HOST 불일치.
+- [xcode-spm/gen-pbxproj-literal-tab-vs-actual-tab.md](xcode-spm/gen-pbxproj-literal-tab-vs-actual-tab.md) — `gen_xcode_pbx.py` 에 리터럴 `\t` 와 실제 탭이 혼용됨. Edit 툴 매칭 실패 시 `repr()` 확인 후 Python 스크립트로 치환.
