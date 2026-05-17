@@ -16,6 +16,9 @@ enum FileColorToken {
     static var panelBackground:             Color { AppSettings.shared.colors.panelBackground }
     static var neutralBackground:           Color { AppSettings.shared.colors.neutralBackground }
 
+    /// 상태 표시줄·헤더 보조 컨트롤 등 동일 톤의 읽기 쉬운 2차 레이블 색.
+    static var mutedChromeForeground: Color { Color(white: 0.7) }
+
     static func color(for entry: DirectoryEntry) -> Color {
         if entry.isDirectory { return folder }
         switch entry.ext {
@@ -29,4 +32,15 @@ enum FileColorToken {
         default: return document
         }
     }
+}
+
+/// 파일 리스트 선택 행과 ⌘L 경로 목록 하이라이트 공통 스타일(시스템 accent, 연속 라운드).
+enum ListAccentHighlight {
+    static let cornerRadius: CGFloat = 6
+    /// 파일 패널 행 폭 안쪽 들여줌(패널과 동일 패딩이면 과하게 꽉 찬 칩 모양 완화).
+    static let fileListHorizontalInset: CGFloat = 4
+    /// 주소 목록 행 등 “활성” 컨텍스트 선택.
+    static var fill: Color { Color.accentColor.opacity(0.35) }
+    /// 활성 패널이 아닐 때 패널에 남긴 커서 하이라이트는 한 단계 약하게.
+    static var inactivePaneFill: Color { Color.accentColor.opacity(0.22) }
 }

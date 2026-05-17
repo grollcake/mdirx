@@ -1,6 +1,23 @@
 import AppKit
 import SwiftUI
 
+// MARK: - ⌘L 주소 popover 리스트 스크롤 뷰포트 (파일 리스트와 동일: 가시하면 스크롤 안 함·클립 시만 top/bottom)
+
+private enum AddressPopoverViewportGlobalPreferenceKey: PreferenceKey {
+    static var defaultValue: CGRect { .zero }
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+        let next = nextValue()
+        if next.width > 1, next.height > 1 { value = next }
+    }
+}
+
+private enum AddressPopoverRowGlobalFramesPreferenceKey: PreferenceKey {
+    static var defaultValue: [Int: CGRect] { [:] }
+    static func reduce(value: inout [Int: CGRect], nextValue: () -> [Int: CGRect]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, n in n })
+    }
+}
+
 /// SwiftUI `TextField`가 단독으로는 focus 시 전체 선택을 보장하지 않는다.
 /// NSText의 `selectAll(_:)`을 first responder에게 보내 전체 선택을 강제한다.
 @MainActor
@@ -38,10 +55,12 @@ struct PathHistoryMenuButton: View {
             }
         } label: {
             Image(systemName: "clock.arrow.circlepath")
+                .symbolRenderingMode(.monochrome)
                 .font(.system(size: 12, weight: .regular))
-                .foregroundStyle(Color(white: 0.65))
+                .foregroundStyle(FileColorToken.mutedChromeForeground)
                 .frame(width: 22, height: 22)
         }
+        .tint(FileColorToken.mutedChromeForeground)
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
         .accessibilityIdentifier("pane.\(pane.rawValue).path.history")
@@ -58,6 +77,9 @@ struct AddressPopoverView: View {
 
     @FocusState private var fieldFocused: Bool
     @FocusState private var listFocused: Bool
+
+    @State private var addressPopoverViewportGlobal: CGRect = .zero
+    @State private var addressPopoverRowFramesGlobalByIndex: [Int: CGRect] = [:]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -118,8 +140,20 @@ struct AddressPopoverView: View {
                             }
                         }
                     }
-                    .onChange(of: state.addressListFocusIndex) { _, new in
-                        scrollFocusedRow(new, with: proxy)
+                    .background(
+                        GeometryReader { viewportGeo in
+                            Color.clear.preference(
+                                key: AddressPopoverViewportGlobalPreferenceKey.self,
+                                value: viewportGeo.frame(in: .global)
+                            )
+                        }
+                    )
+                    .onPreferenceChange(AddressPopoverViewportGlobalPreferenceKey.self) { addressPopoverViewportGlobal = $0 }
+                    .onPreferenceChange(AddressPopoverRowGlobalFramesPreferenceKey.self) {
+                        addressPopoverRowFramesGlobalByIndex = $0
+                    }
+                    .onChange(of: state.addressListFocusIndex) { oldIdx, newIdx in
+                        scrollAddressListFocusedRowIfNeeded(proxy: proxy, oldIndex: oldIdx, newIndex: newIdx)
                     }
                 }
                 .frame(maxHeight: 220)
@@ -187,12 +221,29 @@ struct AddressPopoverView: View {
                 .font(.system(size: 12))
                 .lineLimit(1)
                 .truncationMode(.tail)
-                .foregroundStyle(Color(white: 0.92))
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .background(highlighted ? Color.accentColor.opacity(0.35) : Color.clear)
+        .background(
+            Group {
+                if highlighted {
+                    RoundedRectangle(cornerRadius: ListAccentHighlight.cornerRadius, style: .continuous)
+                        .fill(ListAccentHighlight.fill)
+                } else {
+                    Color.clear
+                }
+            }
+        )
+        .foregroundStyle(highlighted ? Color.white.opacity(0.94) : Color(white: 0.92))
+        .background(
+            GeometryReader { geo in
+                Color.clear.preference(
+                    key: AddressPopoverRowGlobalFramesPreferenceKey.self,
+                    value: [index: geo.frame(in: .global)]
+                )
+            }
+        )
         .contentShape(Rectangle())
         .onHover { hovering in
             if hovering { state.addressListFocusIndex = index }
@@ -213,10 +264,54 @@ struct AddressPopoverView: View {
         if !shouldFocusList { selectAllInFocusedField() }
     }
 
-    private func scrollFocusedRow(_ index: Int?, with proxy: ScrollViewProxy) {
-        guard let index, state.addressListFlat.indices.contains(index) else { return }
-        withAnimation(.easeOut(duration: 0.08)) {
-            proxy.scrollTo(index, anchor: .center)
+    private func scrollAddressListFocusedRowIfNeeded(proxy: ScrollViewProxy, oldIndex: Int?, newIndex: Int?) {
+        guard let idx = newIndex, state.addressListFlat.indices.contains(idx) else { return }
+        Task { @MainActor in
+            await Task.yield()
+            revealAddressListRowIfVerticallyClipped(
+                proxy: proxy,
+                focusedIndex: idx,
+                oldFocusIndex: oldIndex
+            )
         }
+    }
+
+    private func revealAddressListRowIfVerticallyClipped(
+        proxy: ScrollViewProxy,
+        focusedIndex: Int,
+        oldFocusIndex: Int?
+    ) {
+        let slack: CGFloat = 1
+        let viewport = addressPopoverViewportGlobal
+        let rowRects = addressPopoverRowFramesGlobalByIndex
+
+        guard viewport.width > 10, viewport.height > 10 else {
+            let down = prefersAddressListScrollDownReveal(oldIndex: oldFocusIndex, newIndex: focusedIndex)
+            proxy.scrollTo(focusedIndex, anchor: down ? .bottom : .top)
+            return
+        }
+
+        if let rowRect = rowRects[focusedIndex], rowRect.height >= 8 {
+            if rowRect.minY >= viewport.minY - slack, rowRect.maxY <= viewport.maxY + slack {
+                return
+            }
+            if rowRect.minY < viewport.minY - slack {
+                proxy.scrollTo(focusedIndex, anchor: .top)
+                return
+            }
+            if rowRect.maxY > viewport.maxY + slack {
+                proxy.scrollTo(focusedIndex, anchor: .bottom)
+                return
+            }
+            return
+        }
+
+        let down = prefersAddressListScrollDownReveal(oldIndex: oldFocusIndex, newIndex: focusedIndex)
+        proxy.scrollTo(focusedIndex, anchor: down ? .bottom : .top)
+    }
+
+    private func prefersAddressListScrollDownReveal(oldIndex: Int?, newIndex: Int) -> Bool {
+        guard let old = oldIndex, old != newIndex else { return true }
+        return newIndex > old
     }
 }

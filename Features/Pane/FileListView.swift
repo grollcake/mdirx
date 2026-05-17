@@ -1,11 +1,33 @@
 import AppKit
 import SwiftUI
 
+// MARK: - 파일 리스트 스크롤 뷰포트 동기화 (글로벌 좌표)
+
+private enum FileListViewportGlobalPreferenceKey: PreferenceKey {
+    static var defaultValue: CGRect { .zero }
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+        let next = nextValue()
+        if next.width > 1, next.height > 1 { value = next }
+    }
+}
+
+private enum FileListRowGlobalFramesPreferenceKey: PreferenceKey {
+    static var defaultValue: [URL: CGRect] { [:] }
+    static func reduce(value: inout [URL: CGRect], nextValue: () -> [URL: CGRect]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, n in n })
+    }
+}
+
 struct FileListView: View {
     @Bindable var state: PaneState
     let isActive: Bool
     let onActivate: @MainActor () -> Void
     let onRowDoubleClick: @MainActor () -> Void
+
+    /// ScrollView 가시 영역(글로벌). 배경 GeometryReader.preference 로 갱신.
+    @State private var viewportGlobalRect: CGRect = .zero
+    /// Lazy 로 올려진 행만 측정된다.
+    @State private var rowFramesGlobalByID: [URL: CGRect] = [:]
 
     var body: some View {
         Group {
@@ -21,29 +43,134 @@ struct FileListView: View {
                     let rows = state.paneRows
                     let layout = FileListLayout.available(in: proxy.size.width, rows: rows)
                     VStack(spacing: 0) {
-                        ScrollView {
-                            LazyVStack(alignment: .leading, spacing: 0) {
-                                ForEach(rows) { row in
-                                    FileListRow(
-                                        state: state,
-                                        row: row,
-                                        isActive: isActive,
-                                        sanitizedBasename: sanitizedBasename(row.id),
-                                        layout: layout,
-                                        onActivate: onActivate,
-                                        onRowDoubleClick: onRowDoubleClick
+                        ScrollViewReader { scrollProxy in
+                            ScrollView {
+                                LazyVStack(alignment: .leading, spacing: 0) {
+                                    ForEach(rows) { row in
+                                        FileListRow(
+                                            state: state,
+                                            row: row,
+                                            isActive: isActive,
+                                            sanitizedBasename: sanitizedBasename(row.id),
+                                            layout: layout,
+                                            onActivate: onActivate,
+                                            onRowDoubleClick: onRowDoubleClick
+                                        )
+                                        .background(
+                                            GeometryReader { geo in
+                                                Color.clear.preference(
+                                                    key: FileListRowGlobalFramesPreferenceKey.self,
+                                                    value: [row.id: geo.frame(in: .global)]
+                                                )
+                                            }
+                                        )
+                                        .id(row.id)
+                                    }
+                                }
+                                .padding(.leading, FileListLayout.outerPadding)
+                                .padding(.trailing, FileListLayout.trailingPadding)
+                                .padding(.vertical, 6)
+                            }
+                            .background(
+                                GeometryReader { viewportGeo in
+                                    Color.clear.preference(
+                                        key: FileListViewportGlobalPreferenceKey.self,
+                                        value: viewportGeo.frame(in: .global)
+                                    )
+                                }
+                            )
+                            .onPreferenceChange(FileListViewportGlobalPreferenceKey.self) { viewportGlobalRect = $0 }
+                            .onPreferenceChange(FileListRowGlobalFramesPreferenceKey.self) { rowFramesGlobalByID = $0 }
+                            .onChange(of: state.cursorID) { oldID, newID in
+                                revealCursorIfNeeded(
+                                    with: scrollProxy,
+                                    oldCursorID: oldID,
+                                    newCursorID: newID,
+                                    paneRowsSnapshot: rows
+                                )
+                            }
+                            .onChange(of: isActive) { _, active in
+                                if active {
+                                    revealCursorIfNeeded(
+                                        with: scrollProxy,
+                                        oldCursorID: nil,
+                                        newCursorID: state.cursorID,
+                                        paneRowsSnapshot: rows
                                     )
                                 }
                             }
-                            .padding(.leading, FileListLayout.outerPadding)
-                            .padding(.trailing, FileListLayout.trailingPadding)
-                            .padding(.vertical, 6)
                         }
                     }
                 }
             }
         }
         .background(FileColorToken.panelBackground)
+    }
+
+    /// 포커스 행이 뷰포트 안에 세로로 온전히 들어오면 스크롤 안 함.
+    /// 맨 아래/맨 위에 붙었을 때만 한 줄 단위 감각에 가깝게 `scrollTo` (각각 `.bottom` / `.top`).
+    private func revealCursorIfNeeded(
+        with proxy: ScrollViewProxy,
+        oldCursorID: URL?,
+        newCursorID: URL?,
+        paneRowsSnapshot: [PaneRow]
+    ) {
+        guard isActive, let id = newCursorID else { return }
+        Task { @MainActor in
+            await Task.yield()
+            scrollToCursorIfVerticallyClipped(
+                proxy: proxy,
+                cursorID: id,
+                oldCursorID: oldCursorID,
+                paneRowsSnapshot: paneRowsSnapshot,
+                viewportGlobal: viewportGlobalRect,
+                rowFramesGlobalByID: rowFramesGlobalByID
+            )
+        }
+    }
+
+    private func scrollToCursorIfVerticallyClipped(
+        proxy: ScrollViewProxy,
+        cursorID: URL,
+        oldCursorID: URL?,
+        paneRowsSnapshot: [PaneRow],
+        viewportGlobal: CGRect,
+        rowFramesGlobalByID: [URL: CGRect]
+    ) {
+        let slack: CGFloat = 1
+
+        guard viewportGlobal.width > 10, viewportGlobal.height > FileListLayout.rowHeight else {
+            let down = prefersScrollDownReveal(oldCursorID: oldCursorID, newCursorID: cursorID, rows: paneRowsSnapshot)
+            proxy.scrollTo(cursorID, anchor: down ? .bottom : .top)
+            return
+        }
+
+        if let rowRect = rowFramesGlobalByID[cursorID], rowRect.height >= 8 {
+            if rowRect.minY >= viewportGlobal.minY - slack, rowRect.maxY <= viewportGlobal.maxY + slack {
+                return
+            }
+            if rowRect.minY < viewportGlobal.minY - slack {
+                proxy.scrollTo(cursorID, anchor: .top)
+                return
+            }
+            if rowRect.maxY > viewportGlobal.maxY + slack {
+                proxy.scrollTo(cursorID, anchor: .bottom)
+                return
+            }
+            return
+        }
+
+        let down = prefersScrollDownReveal(oldCursorID: oldCursorID, newCursorID: cursorID, rows: paneRowsSnapshot)
+        proxy.scrollTo(cursorID, anchor: down ? .bottom : .top)
+    }
+
+    private func prefersScrollDownReveal(oldCursorID: URL?, newCursorID: URL, rows: [PaneRow]) -> Bool {
+        guard let old = oldCursorID,
+              let o = rows.firstIndex(where: { $0.id == old }),
+              let n = rows.firstIndex(where: { $0.id == newCursorID }),
+              n != o
+        else { return true }
+        return n > o
     }
 
     private func sanitizedBasename(_ url: URL) -> String {
@@ -253,12 +380,12 @@ private struct FileListRow: View {
 
                 Image(systemName: iconName)
                     .font(.system(size: 11))
-                    .foregroundStyle(iconColor)
+                    .foregroundStyle(fgIcon)
                     .frame(width: layout.iconWidth, alignment: .center)
 
                 Text(name)
                     .font(.system(size: 12, weight: .regular))
-                    .foregroundStyle(nameColor)
+                    .foregroundStyle(fgPrimaryName)
                     .lineLimit(1)
                     .truncationMode(.tail)
                     .frame(width: layout.nameWidth, alignment: .leading)
@@ -280,18 +407,18 @@ private struct FileListRow: View {
 
                     Text(date)
                         .font(.system(size: 11).monospacedDigit())
-                        .foregroundStyle(Color(white: 0.7))
+                        .foregroundStyle(fgDateTime)
                         .frame(width: layout.dateWidth, alignment: .leading)
 
                     Text(time)
                         .font(.system(size: 11).monospacedDigit())
-                        .foregroundStyle(Color(white: 0.7))
+                        .foregroundStyle(fgDateTime)
                         .frame(width: layout.timeWidth, alignment: .leading)
 
                     if layout.showsAttrs {
                         Text(attrs)
                             .font(.system(size: 11).monospaced())
-                            .foregroundStyle(Color(white: 0.55))
+                            .foregroundStyle(fgAttrsMuted)
                             .frame(width: layout.attrsWidth, alignment: .leading)
                     }
 
@@ -323,6 +450,46 @@ private struct FileListRow: View {
         state.selection.contains(row.id)
     }
 
+    private var fgIcon: Color {
+        if isSelected { return Color.white.opacity(isActive ? 0.9 : 0.78) }
+        return iconColor
+    }
+
+    private var fgPrimaryName: Color {
+        if isSelected { return Color.white.opacity(isActive ? 0.96 : 0.85) }
+        return nameColor
+    }
+
+    private var fgDateTime: Color {
+        if isSelected { return Color.white.opacity(isActive ? 0.76 : 0.62) }
+        return Color(white: 0.7)
+    }
+
+    private var fgAttrsMuted: Color {
+        if isSelected { return Color.white.opacity(isActive ? 0.58 : 0.48) }
+        return Color(white: 0.55)
+    }
+
+    private var fgDescriptionMuted: Color {
+        if isSelected { return Color.white.opacity(isActive ? 0.52 : 0.42) }
+        return Color(white: 0.48)
+    }
+
+    private var fgSizeNumeric: Color {
+        if isSelected { return Color.white.opacity(isActive ? 0.82 : 0.68) }
+        return Color(white: 0.85)
+    }
+
+    private var fgFolderBracket: Color {
+        if isSelected { return Color.white.opacity(isActive ? 0.55 : 0.44) }
+        return Color(white: 0.45)
+    }
+
+    private var fgVolumeFreeCaption: Color {
+        if isSelected { return Color.white.opacity(isActive ? 0.78 : 0.64) }
+        return Color(white: 0.78)
+    }
+
     @ViewBuilder
     private var rowBackground: some View {
         ZStack {
@@ -330,8 +497,9 @@ private struct FileListRow: View {
                 Rectangle().fill(FileColorToken.markedBackground)
             }
             if isSelected {
-                Rectangle()
-                    .fill(isActive ? FileColorToken.selectionActiveBackground : FileColorToken.selectionInactiveBackground)
+                RoundedRectangle(cornerRadius: ListAccentHighlight.cornerRadius, style: .continuous)
+                    .fill(isActive ? ListAccentHighlight.fill : ListAccentHighlight.inactivePaneFill)
+                    .padding(.horizontal, ListAccentHighlight.fileListHorizontalInset)
             }
         }
     }
@@ -367,7 +535,7 @@ private struct FileListRow: View {
 
             Text("\(Self.formatBytes(volume.freeBytes)) 남음")
                 .font(.system(size: 11).monospacedDigit())
-                .foregroundStyle(Color(white: 0.78))
+                .foregroundStyle(fgVolumeFreeCaption)
                 .frame(width: volumeFreeTextWidth(startingAfterExt: true), alignment: .leading)
 
             if layout.showsDescription {
@@ -380,7 +548,7 @@ private struct FileListRow: View {
 
             Text("\(Self.formatBytes(volume.freeBytes)) 남음")
                 .font(.system(size: 11).monospacedDigit())
-                .foregroundStyle(Color(white: 0.78))
+                .foregroundStyle(fgVolumeFreeCaption)
                 .frame(width: volumeFreeTextWidth(startingAfterExt: false), alignment: .leading)
 
             if layout.showsDescription {
@@ -410,7 +578,7 @@ private struct FileListRow: View {
             } else {
                 Text(entry.kindDescription)
                     .font(.system(size: 11))
-                    .foregroundStyle(Color(white: 0.48))
+                    .foregroundStyle(fgDescriptionMuted)
                     .lineLimit(1)
                     .truncationMode(.tail)
             }
@@ -428,7 +596,7 @@ private struct FileListRow: View {
             } else {
                 Text(entry.ext)
                     .font(.system(size: 12))
-                    .foregroundStyle(nameColor)
+                    .foregroundStyle(fgPrimaryName)
             }
         case let .volume(volume):
             VolumeUsageBar(usedRatio: usedRatio(for: volume))
@@ -444,16 +612,16 @@ private struct FileListRow: View {
             } else if entry.isDirectory {
                 Text("[폴더]")
                     .font(.system(size: 11).monospacedDigit())
-                    .foregroundStyle(Color(white: 0.45))
+                    .foregroundStyle(fgFolderBracket)
             } else {
                 Text(Self.formatBytes(entry.size))
                     .font(.system(size: 11).monospacedDigit())
-                    .foregroundStyle(Color(white: 0.85))
+                    .foregroundStyle(fgSizeNumeric)
             }
         case let .volume(volume):
             Text("\(Self.formatBytes(volume.freeBytes)) 남음")
                 .font(.system(size: 11).monospacedDigit())
-                .foregroundStyle(Color(white: 0.78))
+                .foregroundStyle(fgVolumeFreeCaption)
         }
     }
 
