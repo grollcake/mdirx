@@ -7,11 +7,11 @@
 
 ## 컬럼 구성
 
-- **▶·아이콘·이름** 좌측 그룹: `HStack(spacing: 8)`
+- **▶·아이콘·이름** 좌측 그룹: `HStack(spacing: 8)` — `.layoutPriority(1)` 적용, 창이 좁아질 때 우측 컬럼보다 먼저 공간 확보
 - **이름↔ext** 및 **ext~description** 우측 그룹 사이: `HStack(spacing: 12)`
 - 우측 그룹 내부(ext·size·date·time·attrs·desc): `HStack(spacing: 12)`
 
-| | ▶ (12pt) | 아이콘 (14pt) | 이름 (동적) | ext (52pt) | size (56pt) | date (70pt) | time (36pt) | attrs (36pt) | description (동적) |
+| | ▶ (6pt) | 아이콘 (14pt) | 이름 (동적) | ext (52pt) | size (56pt) | date (70pt) | time (36pt) | attrs (36pt) | description (동적) |
 |---|---|---|---|---|---|---|---|---|---|
 | **정렬** | 가운데 | 가운데 | 왼쪽 | 왼쪽 | 오른쪽 | 왼쪽 | 왼쪽 | 왼쪽 | 왼쪽 |
 | **간격** | 8pt→ | 8pt→ | 8pt→ | 8pt→ | 8pt→ | 8pt→ | 8pt→ | 8pt→ | |
@@ -22,7 +22,7 @@
 
 ### 이름·description 동적 폭 계산
 
-- 가용 폭(`forFlexible`) = 전체 폭 − 외부 패딩 − 고정 컬럼 합계(276pt) − 간격(64pt)
+- 가용 폭(`forFlexible`) = 전체 폭 − 외부 패딩 − 고정 컬럼 합계(270pt) − 간격(64pt)
 - 실제 이름 폭: 현재 패널의 모든 행 `displayName` / `volume.name` 을 `NSFont.systemFont(ofSize: 12)` 기준으로 측정 → 최대값 + 12pt 여백
 - `dateWidth` = **70pt** 고정 (`"yyyy-MM-dd"` 실측 67pt + 3pt 여백 기준).
 - **날짜 표기 규칙** (`relativeOrCalendarDate`): 오늘 → `오늘`, 1~10일 전 → `N일 전`, 11일 이상 → `yyyy-MM-dd`. 폴더·파일 동일 적용.

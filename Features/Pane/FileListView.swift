@@ -21,7 +21,7 @@ struct FileListView: View {
                     let layout = FileListLayout.available(in: proxy.size.width, rows: state.paneRows)
                     VStack(spacing: 0) {
                         ScrollView {
-                            LazyVStack(spacing: 0) {
+                            LazyVStack(alignment: .leading, spacing: 0) {
                                 ForEach(state.paneRows) { row in
                                     FileListRow(
                                         state: state,
@@ -65,7 +65,7 @@ private struct FileListLayout {
         return ceil(("2026-05-17" as NSString).size(withAttributes: attrs).width) + 4
     }()
 
-    let selectionMarkerWidth: CGFloat = 12
+    let selectionMarkerWidth: CGFloat = 6
     let iconWidth: CGFloat = 14
     let extWidth: CGFloat = 52
     let sizeWidth: CGFloat = 56
@@ -76,9 +76,9 @@ private struct FileListLayout {
     let descriptionWidth: CGFloat
 
     static func available(in totalWidth: CGFloat, rows: [PaneRow]) -> FileListLayout {
-        // fixed = 12+14+52+56+dateWidth+36+36
+        // fixed = 6+14+52+56+dateWidth+36+36
         // spacing: left-group 2×8=16, mid 1×12=12, right-group 5×12=60 → 88
-        let fixed = 12 + 14 + 52 + 56 + Self.dateWidth + 36 + 36
+        let fixed = 6 + 14 + 52 + 56 + Self.dateWidth + 36 + 36
         let spacing: CGFloat = 88
         let forFlexible = max(0, totalWidth - outerPadding * 2 - fixed - spacing)
 
@@ -159,6 +159,7 @@ private struct FileListRow: View {
                     .frame(width: layout.nameWidth, alignment: .leading)
                     .clipped()
             }
+            .layoutPriority(1)
 
             HStack(spacing: 12) {
                 extView
