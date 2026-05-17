@@ -1,6 +1,8 @@
 import SwiftUI
+import SwiftData
 
 struct DualPaneView: View {
+    @Environment(\.modelContext) private var modelContext
     @State private var session = BrowserSession()
     @FocusState private var keyHandlingFocused: Bool
 
@@ -74,8 +76,22 @@ struct DualPaneView: View {
         .focusEffectDisabled()
         .onAppear { keyHandlingFocused = true }
         .onKeyPress { press in
-            // 편집 모달이 열려 있으면 모달이 키를 처리하도록 양보
             guard session.current.editing == nil else { return .ignored }
+            if session.current.addressEditing {
+                if press.key == .escape {
+                    session.current.cancelAddressEditing()
+                    return .handled
+                }
+                if press.key == KeyEquivalent("l"), press.modifiers.contains(.command) {
+                    session.current.beginAddressEditing()
+                    return .handled
+                }
+                return .ignored
+            }
+            if press.key == KeyEquivalent("l"), press.modifiers.contains(.command) {
+                session.current.beginAddressEditing()
+                return .handled
+            }
             if press.key == .tab {
                 session.toggleActive()
                 return .handled
@@ -145,6 +161,7 @@ struct DualPaneView: View {
             KeyEquivalent(Character(Unicode.Scalar(0xF709)!)), // F6
         ]) { press in
             guard session.current.editing == nil else { return .ignored }
+            guard !session.current.addressEditing else { return .ignored }
             switch press.key.character.unicodeScalars.first?.value {
             case 0xF705:
                 session.current.requestRename()
@@ -160,6 +177,7 @@ struct DualPaneView: View {
             }
         }
         .task {
+            session.attachPathHistory(modelContext)
             await session.bootstrap()
         }
     }
@@ -167,4 +185,5 @@ struct DualPaneView: View {
 
 #Preview {
     DualPaneView()
+        .modelContainer(try! PersistenceBootstrap.makeEmptyContainer())
 }

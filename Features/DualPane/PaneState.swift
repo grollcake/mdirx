@@ -18,6 +18,13 @@ final class PaneState {
     var error: String?
     var hiddenVisible: Bool = false
 
+    var onPathVisited: ((URL) -> Void)?
+
+    var addressEditing = false
+    var addressDraft = ""
+    var addressError: String? = nil
+    var addressFocusToken: Int = 0
+
     init(slot: PaneSlot, initialURL: URL) {
         self.slot = slot
         self.currentURL = initialURL
@@ -63,48 +70,43 @@ final class PaneState {
         }
     }
 
+    private func jumpToDirectory(_ url: URL, via fs: FileSystemActor) async {
+        let priorPath = currentURL.standardizedFileURL.path
+        currentURL = url.resolvingSymlinksInPath()
+        cursorID = nil
+        selection.removeAll()
+        await load(via: fs)
+        guard error == nil, priorPath != currentURL.standardizedFileURL.path else { return }
+        onPathVisited?(currentURL)
+    }
+
     func enter(via fs: FileSystemActor) async {
         guard let sel = cursorID,
               let entry = entries.first(where: { $0.id == sel })
         else {
             if let volume = mountedVolumes.first(where: { $0.id == cursorID }) {
-                currentURL = volume.id.resolvingSymlinksInPath()
-                cursorID = nil
-                selection.removeAll()
-                await load(via: fs)
+                await jumpToDirectory(volume.id.resolvingSymlinksInPath(), via: fs)
             }
             return
         }
 
         if entry.isParentLink {
-            currentURL = entry.url
-            cursorID = nil
-            selection.removeAll()
-            await load(via: fs)
+            await jumpToDirectory(entry.url, via: fs)
             return
         }
 
         guard entry.isDirectory else { return }
-        currentURL = entry.url.resolvingSymlinksInPath()
-        cursorID = nil
-        selection.removeAll()
-        await load(via: fs)
+        await jumpToDirectory(entry.url.resolvingSymlinksInPath(), via: fs)
     }
 
     func navigate(to url: URL, via fs: FileSystemActor) async {
-        currentURL = url.resolvingSymlinksInPath()
-        cursorID = nil
-        selection.removeAll()
-        await load(via: fs)
+        await jumpToDirectory(url, via: fs)
     }
 
     func ascend(via fs: FileSystemActor) async {
         let parent = currentURL.deletingLastPathComponent()
         guard parent.path != currentURL.path else { return }
-        currentURL = parent
-        cursorID = nil
-        selection.removeAll()
-        await load(via: fs)
+        await jumpToDirectory(parent, via: fs)
     }
 
     func toggleHidden(via fs: FileSystemActor) async {
@@ -137,10 +139,7 @@ final class PaneState {
 
     func handleDoubleClick(via fs: FileSystemActor, openFile: (URL) -> Bool) async {
         if let volume = mountedVolumes.first(where: { $0.id == cursorID }) {
-            currentURL = volume.id.resolvingSymlinksInPath()
-            cursorID = nil
-            selection.removeAll()
-            await load(via: fs)
+            await jumpToDirectory(volume.id.resolvingSymlinksInPath(), via: fs)
             return
         }
 
@@ -150,10 +149,7 @@ final class PaneState {
         case .ascend:
             await ascend(via: fs)
         case let .navigateMountedVolume(volumeURL):
-            currentURL = volumeURL.resolvingSymlinksInPath()
-            cursorID = nil
-            selection.removeAll()
-            await load(via: fs)
+            await jumpToDirectory(volumeURL.resolvingSymlinksInPath(), via: fs)
         case .enterDirectory:
             await enter(via: fs)
         case let .openFile(url):
@@ -293,6 +289,32 @@ final class PaneState {
 
     private func persistURL() {
         UserDefaults.standard.set(currentURL, forKey: "pane.\(slot.rawValue).lastURL")
+    }
+
+    // MARK: - Address bar
+
+    func beginAddressEditing() {
+        addressEditing = true
+        addressDraft = currentURL.path
+        addressError = nil
+        addressFocusToken &+= 1
+    }
+
+    func cancelAddressEditing() {
+        addressEditing = false
+        addressDraft = ""
+        addressError = nil
+    }
+
+    func submitAddressDraft(via fs: FileSystemActor) async {
+        switch AddressPathValidator.expandAndNormalize(addressDraft) {
+        case .failure(let err):
+            addressError = err.userMessage
+        case .success(let url):
+            addressError = nil
+            await navigate(to: url, via: fs)
+            cancelAddressEditing()
+        }
     }
 
     // MARK: - Name Editing

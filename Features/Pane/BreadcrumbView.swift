@@ -34,6 +34,7 @@ struct BreadcrumbView: View {
     let mountedVolumes: [MountedVolume]
     let paneSlot: PaneSlot
     let onTap: @MainActor (URL) -> Void
+    var onPathBarDoubleClick: (@MainActor () -> Void)? = nil
 
     private var segments: [BreadcrumbSegment] {
         breadcrumbSegments(for: currentURL, mountedVolumes: mountedVolumes)
@@ -63,5 +64,10 @@ struct BreadcrumbView: View {
                 }
             }
         }
+        .simultaneousGesture(
+            TapGesture(count: 2).onEnded {
+                onPathBarDoubleClick?()
+            }
+        )
     }
 }

@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 
 enum ActivePane: Equatable {
     case left
@@ -12,6 +13,7 @@ final class BrowserSession {
     let right: PaneState
     var activePane: ActivePane = .left
     let fs = FileSystemActor()
+    private var didAttachPathHistory = false
 
     init() {
         let home = FileManager.default.homeDirectoryForCurrentUser
@@ -27,6 +29,18 @@ final class BrowserSession {
         } else {
             left = PaneState(slot: .left, initialURL: PaneRestore.url(for: .left) ?? home)
             right = PaneState(slot: .right, initialURL: PaneRestore.url(for: .right) ?? home)
+        }
+    }
+
+    func attachPathHistory(_ modelContext: ModelContext) {
+        if didAttachPathHistory { return }
+        didAttachPathHistory = true
+        let store = PathHistoryStore(modelContext: modelContext)
+        left.onPathVisited = { url in
+            try? store.recordVisit(to: url, pane: .left)
+        }
+        right.onPathVisited = { url in
+            try? store.recordVisit(to: url, pane: .right)
         }
     }
 

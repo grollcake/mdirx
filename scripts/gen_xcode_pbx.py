@@ -7,8 +7,8 @@ def uid() -> str:
     return uuid.uuid4().hex[:24].upper()
 
 U = {k: uid() for k in [
-    "PROJECT", "MAIN_GRP", "PROD_GRP", "FEAT_GRP", "DUAL_GRP", "PANE_GRP",
-    "CORE_PARENT", "CORE_PERSIST", "CORE_FS", "CORE_VOL", "CORE_SETTINGS", "DS_GRP",
+    "PROJECT", "MAIN_GRP", "PROD_GRP", "FEAT_GRP", "ADDRESS_GRP", "DUAL_GRP", "PANE_GRP",
+    "CORE_PARENT", "CORE_PERSIST", "CORE_MODELS_GRP", "CORE_FS", "CORE_VOL", "CORE_SETTINGS", "DS_GRP",
     "APP_GRP", "RES_GRP", "TEST_GRP",
     "MDIRX_SUPP", "TPSRC", "UTPSRC",
     "APP_PROD", "TEST_PROD", "UITEST_PROD",
@@ -21,13 +21,15 @@ U = {k: uid() for k in [
     "FR_TOKENS",
     "FR_APPSETTINGS", "FR_COLORSETTINGS",
     "FR_NAME_EDIT_MODAL",
+    "FR_PATH_ENTRY", "FR_PATH_STORE", "FR_ADDR_VAL", "FR_ADDR_BAR",
     # Unit tests
     "FR_SMOKE", "FR_BROWSER_TEST", "FR_FSTEST", "FR_PSTEST",
     "FR_BREAD_TEST", "FR_DBLCLICK_TEST", "FR_CURSOR_TEST",
     "FR_PANE_ROWS_TEST", "FR_PARENT_SYNTH_TEST",
     "FR_ATTRS_TEST", "FR_TIME_TEST", "FR_STATUSBAR_TEST",
     "FR_APPSETTINGS_TEST", "FR_PANE_SEL_TEST",
-    "FR_NAME_EDIT_TEST", "FR_FS_WRITE_TEST",
+    "FR_NAME_EDIT_TEST",     "FR_FS_WRITE_TEST",
+    "FR_PATH_HIST_TEST",
     # UI tests
     "FR_UI", "FR_UIT_DUAL", "FR_UIT_NAV",
     "FR_UIT_MOUSE", "FR_UIT_PARENT", "FR_UIT_NEXUS",
@@ -41,13 +43,15 @@ U = {k: uid() for k in [
     "BF_TOKENS",
     "BF_APPSETTINGS", "BF_COLORSETTINGS",
     "BF_NAME_EDIT_MODAL",
+    "BF_PATH_ENTRY", "BF_PATH_STORE", "BF_ADDR_VAL", "BF_ADDR_BAR",
     # Build files - unit tests
     "BF_SMOKE", "BF_BROWSER_TEST", "BF_FSTEST", "BF_PSTEST",
     "BF_BREAD_TEST", "BF_DBLCLICK_TEST", "BF_CURSOR_TEST",
     "BF_PANE_ROWS_TEST", "BF_PARENT_SYNTH_TEST",
     "BF_ATTRS_TEST", "BF_TIME_TEST", "BF_STATUSBAR_TEST",
     "BF_APPSETTINGS_TEST", "BF_PANE_SEL_TEST",
-    "BF_NAME_EDIT_TEST", "BF_FS_WRITE_TEST",
+    "BF_NAME_EDIT_TEST",     "BF_FS_WRITE_TEST",
+    "BF_PATH_HIST_TEST",
     # Build files - UI tests
     "BF_UI", "BF_UIT_DUAL", "BF_UIT_NAV",
     "BF_UIT_MOUSE", "BF_UIT_PARENT", "BF_UIT_NEXUS",
@@ -114,7 +118,12 @@ pbx = f"""// !$*UTF8*$!
 \t\t{u['BF_PANE_SEL_TEST']} /* PaneSelectionTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_PANE_SEL_TEST']}; }};
 \t\t{u['BF_NAME_EDIT_TEST']} /* NameEditTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_NAME_EDIT_TEST']}; }};
 \t\t{u['BF_FS_WRITE_TEST']} /* FileSystemActorWriteTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_FS_WRITE_TEST']}; }};
+\t\t{u['BF_PATH_HIST_TEST']} /* PathHistoryStoreTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_PATH_HIST_TEST']}; }};
 \t\t{u['BF_NAME_EDIT_MODAL']} /* NameEditModal.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_NAME_EDIT_MODAL']}; }};
+\t\t{u['BF_PATH_ENTRY']} /* PathHistoryEntry.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_PATH_ENTRY']}; }};
+\t\t{u['BF_PATH_STORE']} /* PathHistoryStore.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_PATH_STORE']}; }};
+\t\t{u['BF_ADDR_VAL']} /* AddressPathValidation.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_ADDR_VAL']}; }};
+\t\t{u['BF_ADDR_BAR']} /* AddressBarView.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_ADDR_BAR']}; }};
 \t\t{u['BF_UIT_RENAME']} /* RenameNewFolderNewFileTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_UIT_RENAME']}; }};
 \t\t{u['BF_UI']} /* LaunchTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_UI']}; }};
 \t\t{u['BF_UIT_DUAL']} /* DualPaneTabToggleTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_UIT_DUAL']}; }};
@@ -163,7 +172,12 @@ pbx = f"""// !$*UTF8*$!
 \t\t{u['FR_PANE_SEL_TEST']} /* PaneSelectionTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneSelectionTests.swift; sourceTree = "<group>"; }};
 \t\t{u['FR_NAME_EDIT_TEST']} /* NameEditTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NameEditTests.swift; sourceTree = "<group>"; }};
 \t\t{u['FR_FS_WRITE_TEST']} /* FileSystemActorWriteTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSystemActorWriteTests.swift; sourceTree = "<group>"; }};
+\t\t{u['FR_PATH_HIST_TEST']} /* PathHistoryStoreTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathHistoryStoreTests.swift; sourceTree = "<group>"; }};
 \t\t{u['FR_NAME_EDIT_MODAL']} /* NameEditModal.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NameEditModal.swift; sourceTree = "<group>"; }};
+\t\t{u['FR_PATH_ENTRY']} /* PathHistoryEntry.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathHistoryEntry.swift; sourceTree = "<group>"; }};
+\t\t{u['FR_PATH_STORE']} /* PathHistoryStore.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathHistoryStore.swift; sourceTree = "<group>"; }};
+\t\t{u['FR_ADDR_VAL']} /* AddressPathValidation.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressPathValidation.swift; sourceTree = "<group>"; }};
+\t\t{u['FR_ADDR_BAR']} /* AddressBarView.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressBarView.swift; sourceTree = "<group>"; }};
 \t\t{u['FR_UIT_RENAME']} /* RenameNewFolderNewFileTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenameNewFolderNewFileTests.swift; sourceTree = "<group>"; }};
 \t\t{u['FR_UI']} /* LaunchTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchTests.swift; sourceTree = "<group>"; }};
 \t\t{u['FR_UIT_DUAL']} /* DualPaneTabToggleTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DualPaneTabToggleTests.swift; sourceTree = "<group>"; }};
@@ -223,10 +237,20 @@ pbx = f"""// !$*UTF8*$!
 \t\t{u['FEAT_GRP']} /* Features */ = {{
 \t\t\tisa = PBXGroup;
 \t\t\tchildren = (
+\t\t\t\t{u['ADDRESS_GRP']} /* AddressBar */,
 \t\t\t\t{u['DUAL_GRP']} /* DualPane */,
 \t\t\t\t{u['PANE_GRP']} /* Pane */,
 \t\t\t);
 \t\t\tpath = Features;
+\t\t\tsourceTree = "<group>";
+\t\t}};
+\t\t{u['ADDRESS_GRP']} /* AddressBar */ = {{
+\t\t\tisa = PBXGroup;
+\t\t\tchildren = (
+\t\t\t\t{u['FR_ADDR_VAL']},
+\t\t\t\t{u['FR_ADDR_BAR']},
+\t\t\t);
+\t\t\tpath = AddressBar;
 \t\t\tsourceTree = "<group>";
 \t\t}};
 \t\t{u['DUAL_GRP']} /* DualPane */ = {{
@@ -268,8 +292,20 @@ pbx = f"""// !$*UTF8*$!
 \t\t}};
 \t\t{u['CORE_PERSIST']} /* Persistence */ = {{
 \t\t\tisa = PBXGroup;
-\t\t\tchildren = ({u['FR_MODEL']});
+\t\t\tchildren = (
+\t\t\t\t{u['CORE_MODELS_GRP']} /* Models */,
+\t\t\t\t{u['FR_MODEL']},
+\t\t\t\t{u['FR_PATH_STORE']},
+\t\t\t);
 \t\t\tpath = Persistence;
+\t\t\tsourceTree = "<group>";
+\t\t}};
+\t\t{u['CORE_MODELS_GRP']} /* Models */ = {{
+\t\t\tisa = PBXGroup;
+\t\t\tchildren = (
+\t\t\t\t{u['FR_PATH_ENTRY']},
+\t\t\t);
+\t\t\tpath = Models;
 \t\t\tsourceTree = "<group>";
 \t\t}};
 \t\t{u['CORE_FS']} /* FileSystem */ = {{
@@ -334,6 +370,7 @@ pbx = f"""// !$*UTF8*$!
 \t\t\t\t{u['FR_PANE_SEL_TEST']},
 \t\t\t\t{u['FR_NAME_EDIT_TEST']},
 \t\t\t\t{u['FR_FS_WRITE_TEST']},
+\t\t\t\t{u['FR_PATH_HIST_TEST']},
 \t\t\t);
 \t\t\tpath = UnitTests;
 \t\t\tsourceTree = "<group>";
@@ -442,6 +479,8 @@ pbx = f"""// !$*UTF8*$!
 \t\t\tfiles = (
 \t\t\t\t{u['BF_APP']},
 \t\t\t\t{u['BF_MODEL']},
+\t\t\t\t{u['BF_PATH_ENTRY']},
+\t\t\t\t{u['BF_PATH_STORE']},
 \t\t\t\t{u['BF_ENTRY']},
 \t\t\t\t{u['BF_FS']},
 \t\t\t\t{u['BF_VOL']},
@@ -460,6 +499,8 @@ pbx = f"""// !$*UTF8*$!
 \t\t\t\t{u['BF_SUMMARY']},
 \t\t\t\t{u['BF_VOL_BADGE']},
 \t\t\t\t{u['BF_NAME_EDIT_MODAL']},
+\t\t\t\t{u['BF_ADDR_VAL']},
+\t\t\t\t{u['BF_ADDR_BAR']},
 \t\t\t);
 \t\t\trunOnlyForDeploymentPostprocessing = 0;
 \t\t}};
@@ -483,6 +524,7 @@ pbx = f"""// !$*UTF8*$!
 \t\t\t\t{u['BF_PANE_SEL_TEST']},
 \t\t\t\t{u['BF_NAME_EDIT_TEST']},
 \t\t\t\t{u['BF_FS_WRITE_TEST']},
+\t\t\t\t{u['BF_PATH_HIST_TEST']},
 \t\t\t);
 \t\t\trunOnlyForDeploymentPostprocessing = 0;
 \t\t}};

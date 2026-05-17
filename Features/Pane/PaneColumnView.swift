@@ -1,6 +1,8 @@
 import SwiftUI
+import SwiftData
 
 struct PaneColumnView: View {
+    @Environment(\.modelContext) private var modelContext
     @Bindable var state: PaneState
     let isActive: Bool
     let accessibilityPaneId: String
@@ -13,6 +15,8 @@ struct PaneColumnView: View {
         VStack(spacing: 0) {
             PaneHeaderView(
                 state: state,
+                fs: fs,
+                pathHistory: PathHistoryStore(modelContext: modelContext),
                 onActivate: onActivate,
                 onSegmentTap: onSegmentTap
             )
