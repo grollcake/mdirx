@@ -35,7 +35,8 @@ struct FileListView: View {
                                     )
                                 }
                             }
-                            .padding(.horizontal, FileListLayout.outerPadding)
+                            .padding(.leading, FileListLayout.outerPadding)
+                            .padding(.trailing, FileListLayout.trailingPadding)
                             .padding(.vertical, 6)
                         }
                     }
@@ -56,18 +57,25 @@ struct FileListView: View {
 
 private struct FileListLayout {
     static let outerPadding: CGFloat = 6
+    /// 우측은 macOS 스크롤바와 겹치지 않도록 추가 여백.
+    static let trailingPadding: CGFloat = 18
     static let rowHeight: CGFloat = 20
 
     // 고정 컬럼 폭 (단위 pt) — 표는 docs/requirements/file-list-columns.md 참고
     static let selectionMarkerWidth: CGFloat = 6
     static let iconWidth: CGFloat = 14
-    static let extWidth: CGFloat = 52
-    static let sizeWidth: CGFloat = 56
-    static let timeWidth: CGFloat = 36
-    static let attrsWidth: CGFloat = 36
+    // ext는 보통 2~4자 (".swift" 등). 좁은 패널에서 이름 공간을 더 주기 위해 축소.
+    static let extWidth: CGFloat = 36
+    static let sizeWidth: CGFloat = 52
+    static let timeWidth: CGFloat = 32
+    static let attrsWidth: CGFloat = 30
 
-    // 그룹 간 간격: 좌측 그룹 내 spacing 8 × 2 + mid 12 + 우측 그룹 내 spacing 12 × 5 = 88
-    static let totalSpacing: CGFloat = 88
+    static let leftGroupSpacing: CGFloat = 8
+    static let regularGroupSpacing: CGFloat = 12
+    static let compactGroupSpacing: CGFloat = 8
+    static let minimumNameWidth: CGFloat = 90
+    static let nameWidthPadding: CGFloat = 20
+    static let minimumDescriptionWidth: CGFloat = 48
 
     // dateWidth: "yyyy-MM-dd" 문자열을 monospacedDigit size 11 로 한 번만 측정
     static let dateWidth: CGFloat = {
@@ -77,9 +85,11 @@ private struct FileListLayout {
         return ceil(("2026-05-17" as NSString).size(withAttributes: attrs).width) + 4
     }()
 
-    static let fixedColumnsWidth: CGFloat =
-        selectionMarkerWidth + iconWidth + extWidth + sizeWidth + dateWidth + timeWidth + attrsWidth
-
+    let showsExt: Bool
+    let showsAttrs: Bool
+    let showsDescription: Bool
+    let groupSpacing: CGFloat
+    let rightGroupSpacing: CGFloat
     var selectionMarkerWidth: CGFloat { Self.selectionMarkerWidth }
     var iconWidth: CGFloat { Self.iconWidth }
     var extWidth: CGFloat { Self.extWidth }
@@ -91,9 +101,52 @@ private struct FileListLayout {
     let descriptionWidth: CGFloat
 
     static func available(in totalWidth: CGFloat, rows: [PaneRow]) -> FileListLayout {
-        let forFlexible = max(0, totalWidth - outerPadding * 2 - fixedColumnsWidth - totalSpacing)
+        let preferredNameWidth = preferredNameWidth(for: rows)
 
-        let nameAttrs: [NSAttributedString.Key: Any] = [
+        let regular = make(
+            totalWidth: totalWidth,
+            preferredNameWidth: preferredNameWidth,
+            showsExt: true,
+            showsAttrs: true,
+            spacing: regularGroupSpacing
+        )
+        if regular.nameWidth >= preferredNameWidth {
+            return regular
+        }
+
+        let compact = make(
+            totalWidth: totalWidth,
+            preferredNameWidth: preferredNameWidth,
+            showsExt: true,
+            showsAttrs: true,
+            spacing: compactGroupSpacing
+        )
+        if compact.nameWidth >= preferredNameWidth {
+            return compact
+        }
+
+        let withoutAttrs = make(
+            totalWidth: totalWidth,
+            preferredNameWidth: preferredNameWidth,
+            showsExt: true,
+            showsAttrs: false,
+            spacing: compactGroupSpacing
+        )
+        if withoutAttrs.nameWidth >= preferredNameWidth {
+            return withoutAttrs
+        }
+
+        return make(
+            totalWidth: totalWidth,
+            preferredNameWidth: preferredNameWidth,
+            showsExt: false,
+            showsAttrs: false,
+            spacing: compactGroupSpacing
+        )
+    }
+
+    private static func preferredNameWidth(for rows: [PaneRow]) -> CGFloat {
+        let attrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: 12, weight: .regular)
         ]
         let maxContent = rows.map { row -> CGFloat in
@@ -102,14 +155,42 @@ private struct FileListLayout {
             case let .file(entry): name = entry.displayName
             case let .volume(volume): name = volume.name
             }
-            return (name as NSString).size(withAttributes: nameAttrs).width
+            return (name as NSString).size(withAttributes: attrs).width
         }.max() ?? 0
+        return max(minimumNameWidth, ceil(maxContent) + nameWidthPadding)
+    }
 
-        let maxAllowed = forFlexible * 0.75
-        let nameWidth = max(90, min(maxContent + 12, maxAllowed))
+    private static func make(
+        totalWidth: CGFloat,
+        preferredNameWidth: CGFloat,
+        showsExt: Bool,
+        showsAttrs: Bool,
+        spacing: CGFloat
+    ) -> FileListLayout {
+        let rightColumnCount = 3 + (showsExt ? 1 : 0) + (showsAttrs ? 1 : 0)
+        let fixedWidth = selectionMarkerWidth
+            + iconWidth
+            + (showsExt ? extWidth : 0)
+            + sizeWidth
+            + dateWidth
+            + timeWidth
+            + (showsAttrs ? attrsWidth : 0)
+        let totalSpacing = leftGroupSpacing * 2
+            + spacing
+            + spacing * CGFloat(max(0, rightColumnCount - 1))
+        let forFlexible = max(0, totalWidth - outerPadding - trailingPadding - fixedWidth - totalSpacing)
+        let nameWidth = max(minimumNameWidth, min(preferredNameWidth, forFlexible))
+        let descriptionCandidateWidth = forFlexible - nameWidth - spacing
+        let descriptionWidth = max(0, descriptionCandidateWidth)
+        let showsDescription = descriptionWidth >= minimumDescriptionWidth
         return FileListLayout(
+            showsExt: showsExt,
+            showsAttrs: showsAttrs,
+            showsDescription: showsDescription,
+            groupSpacing: spacing,
+            rightGroupSpacing: spacing,
             nameWidth: nameWidth,
-            descriptionWidth: max(0, forFlexible - nameWidth)
+            descriptionWidth: showsDescription ? descriptionWidth : 0
         )
     }
 }
@@ -118,21 +199,34 @@ private struct FileListHeader: View {
     let layout: FileListLayout
 
     var body: some View {
-        HStack(spacing: 8) {
-            Text("").frame(width: layout.selectionMarkerWidth, alignment: .center)
-            Text("").frame(width: layout.iconWidth, alignment: .center)
-            Text("Name").frame(width: layout.nameWidth, alignment: .leading)
-            Text("Ext").frame(width: layout.extWidth, alignment: .leading)
-            Text("Size").frame(width: layout.sizeWidth, alignment: .trailing)
-            Text("Date").frame(width: layout.dateWidth, alignment: .leading)
-            Text("Time").frame(width: layout.timeWidth, alignment: .leading)
-            Text("Attrs").frame(width: layout.attrsWidth, alignment: .leading)
-            Text("Description").frame(width: layout.descriptionWidth, alignment: .leading)
+        HStack(spacing: layout.groupSpacing) {
+            HStack(spacing: FileListLayout.leftGroupSpacing) {
+                Text("").frame(width: layout.selectionMarkerWidth, alignment: .center)
+                Text("").frame(width: layout.iconWidth, alignment: .center)
+                Text("Name").frame(width: layout.nameWidth, alignment: .leading)
+            }
+            .layoutPriority(1)
+
+            HStack(spacing: layout.rightGroupSpacing) {
+                if layout.showsExt {
+                    Text("Ext").frame(width: layout.extWidth, alignment: .leading)
+                }
+                Text("Size").frame(width: layout.sizeWidth, alignment: .trailing)
+                Text("Date").frame(width: layout.dateWidth, alignment: .leading)
+                Text("Time").frame(width: layout.timeWidth, alignment: .leading)
+                if layout.showsAttrs {
+                    Text("Attrs").frame(width: layout.attrsWidth, alignment: .leading)
+                }
+                if layout.showsDescription {
+                    Text("Description").frame(width: layout.descriptionWidth, alignment: .leading)
+                }
+            }
         }
         .font(.system(size: 11).monospacedDigit())
         .lineLimit(1)
         .foregroundStyle(Color(white: 0.45))
-        .padding(.horizontal, FileListLayout.outerPadding)
+        .padding(.leading, FileListLayout.outerPadding)
+        .padding(.trailing, FileListLayout.trailingPadding)
         .frame(maxWidth: .infinity, minHeight: 22, alignment: .leading)
     }
 }
@@ -150,8 +244,8 @@ private struct FileListRow: View {
     @State private var lastTapRowID: URL?
 
     var body: some View {
-        HStack(spacing: 12) {
-            HStack(spacing: 8) {
+        HStack(spacing: layout.groupSpacing) {
+            HStack(spacing: FileListLayout.leftGroupSpacing) {
                 Text(isMarked ? "▶" : "")
                     .font(.system(size: 11).monospaced())
                     .foregroundStyle(.yellow)
@@ -172,19 +266,15 @@ private struct FileListRow: View {
             }
             .layoutPriority(1)
 
-            HStack(spacing: 12) {
-                extView
-                    .frame(width: layout.extWidth, alignment: .leading)
-
+            HStack(spacing: layout.rightGroupSpacing) {
                 if case let .volume(volume) = row.kind {
-                    Text("\(Self.formatBytes(volume.freeBytes)) 남음")
-                        .font(.system(size: 11).monospacedDigit())
-                        .foregroundStyle(Color(white: 0.78))
-                        .frame(
-                            width: layout.sizeWidth + layout.dateWidth + layout.timeWidth + layout.attrsWidth + 3 * 12,
-                            alignment: .leading
-                        )
+                    volumeColumns(volume)
                 } else {
+                    if layout.showsExt {
+                        extView
+                            .frame(width: layout.extWidth, alignment: .leading)
+                    }
+
                     sizeView
                         .frame(width: layout.sizeWidth, alignment: .trailing)
 
@@ -198,14 +288,18 @@ private struct FileListRow: View {
                         .foregroundStyle(Color(white: 0.7))
                         .frame(width: layout.timeWidth, alignment: .leading)
 
-                    Text(attrs)
-                        .font(.system(size: 11).monospaced())
-                        .foregroundStyle(Color(white: 0.55))
-                        .frame(width: layout.attrsWidth, alignment: .leading)
-                }
+                    if layout.showsAttrs {
+                        Text(attrs)
+                            .font(.system(size: 11).monospaced())
+                            .foregroundStyle(Color(white: 0.55))
+                            .frame(width: layout.attrsWidth, alignment: .leading)
+                    }
 
-                descriptionView
-                    .frame(width: layout.descriptionWidth, alignment: .leading)
+                    if layout.showsDescription {
+                        descriptionView
+                            .frame(width: layout.descriptionWidth, alignment: .leading)
+                    }
+                }
             }
         }
         .lineLimit(1)
@@ -262,6 +356,66 @@ private struct FileListRow: View {
         switch row.kind {
         case let .file(entry): entry.displayName
         case let .volume(volume): volume.name
+        }
+    }
+
+    @ViewBuilder
+    private func volumeColumns(_ volume: MountedVolume) -> some View {
+        if layout.showsExt {
+            extView
+                .frame(width: layout.extWidth, alignment: .leading)
+
+            Text("\(Self.formatBytes(volume.freeBytes)) 남음")
+                .font(.system(size: 11).monospacedDigit())
+                .foregroundStyle(Color(white: 0.78))
+                .frame(width: volumeFreeTextWidth(startingAfterExt: true), alignment: .leading)
+
+            if layout.showsDescription {
+                Color.clear
+                    .frame(width: layout.descriptionWidth, alignment: .leading)
+            }
+        } else {
+            VolumeUsageBar(usedRatio: usedRatio(for: volume))
+                .frame(width: layout.sizeWidth, alignment: .leading)
+
+            Text("\(Self.formatBytes(volume.freeBytes)) 남음")
+                .font(.system(size: 11).monospacedDigit())
+                .foregroundStyle(Color(white: 0.78))
+                .frame(width: volumeFreeTextWidth(startingAfterExt: false), alignment: .leading)
+
+            if layout.showsDescription {
+                Color.clear
+                    .frame(width: layout.descriptionWidth, alignment: .leading)
+            }
+        }
+    }
+
+    private func volumeFreeTextWidth(startingAfterExt: Bool) -> CGFloat {
+        var widths: [CGFloat] = startingAfterExt
+            ? [layout.sizeWidth, layout.dateWidth, layout.timeWidth]
+            : [layout.dateWidth, layout.timeWidth]
+        if layout.showsAttrs {
+            widths.append(layout.attrsWidth)
+        }
+        let spacing = layout.rightGroupSpacing * CGFloat(max(0, widths.count - 1))
+        return widths.reduce(0, +) + spacing
+    }
+
+    @ViewBuilder
+    private var descriptionView: some View {
+        switch row.kind {
+        case let .file(entry):
+            if entry.isParentLink {
+                Color.clear
+            } else {
+                Text(entry.kindDescription)
+                    .font(.system(size: 11))
+                    .foregroundStyle(Color(white: 0.48))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+        case .volume:
+            Color.clear
         }
     }
 
@@ -395,13 +549,6 @@ private struct FileListRow: View {
     }
 
 
-    @ViewBuilder
-    private var descriptionView: some View {
-        switch row.kind {
-        case .file, .volume:
-            Color.clear
-        }
-    }
 
     private func usedRatio(for volume: MountedVolume) -> Double {
         guard volume.totalBytes > 0 else { return 0 }
