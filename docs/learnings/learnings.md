@@ -53,7 +53,7 @@
 - [xcode-spm/gen-pbxproj-literal-tab-vs-actual-tab.md](xcode-spm/gen-pbxproj-literal-tab-vs-actual-tab.md) — `gen_xcode_pbx.py` 에 리터럴 `\t` 와 실제 탭이 혼용됨. Edit 툴 매칭 실패 시 `repr()` 확인 후 Python 스크립트로 치환.
 - [swiftui/onkeypress-action-closure-skips-function-keys.md](swiftui/onkeypress-action-closure-skips-function-keys.md) — `.onKeyPress(action:)` 클로저는 펑션 키(F1~F12)를 라우팅 안 함. `.onKeyPress(keys: [...])` 명시 등록 오버로드 사용.
 - [swiftui/onkeypress-character-becomes-hangul-jamo-under-korean-ime.md](swiftui/onkeypress-character-becomes-hangul-jamo-under-korean-ime.md) — 한글 IME ON 시 modifier 동반에도 `press.key.character`가 자모(ㅣ/ㅏ…)로 변환. QWERTY 역매핑 헬퍼로 정규화 후 비교.
-- [xcode-spm/gen-pbxproj-new-file-registration-checklist.md](xcode-spm/gen-pbxproj-new-file-registration-checklist.md) — `gen_xcode_pbx.py`는 자동 스캔이 아닌 하드코딩. 새 파일 추가 시 UID/BuildFile/FileReference/Group/Phase 5곳 일관 등록.
+- [xcode-spm/gen-pbxproj-new-file-registration-checklist.md](xcode-spm/gen-pbxproj-new-file-registration-checklist.md) — **[DEPRECATED]** 2026-05-17 자동 스캔 도입으로 폐기. 새 Swift 파일은 `python3 scripts/gen_xcode_pbx.py` 한 번이면 끝.
 - [swift/print-stdout-not-captured-for-gui-app-use-nslog.md](swift/print-stdout-not-captured-for-gui-app-use-nslog.md) — GUI 앱에서 `print()`는 stdout 버퍼링으로 묻힐 수 있음. 임시 디버그 로그는 `NSLog` 사용.
 
 ## 메타 노트

@@ -8,6 +8,7 @@ struct PaneColumnView: View {
     let accessibilityPaneId: String
     let fs: FileSystemActor
     let onActivate: @MainActor () -> Void
+    let onToggleActivePane: @MainActor () -> Void
     let onDoubleClick: @MainActor () -> Void
     let onSegmentTap: @MainActor (URL) -> Void
 
@@ -18,6 +19,7 @@ struct PaneColumnView: View {
                 fs: fs,
                 pathHistory: PathHistoryStore(modelContext: modelContext),
                 onActivate: onActivate,
+                onToggleActivePane: onToggleActivePane,
                 onSegmentTap: onSegmentTap
             )
 

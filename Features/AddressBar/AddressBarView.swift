@@ -1,4 +1,17 @@
+import AppKit
 import SwiftUI
+
+/// SwiftUI `TextField`가 단독으로는 focus 시 전체 선택을 보장하지 않는다.
+/// NSText의 `selectAll(_:)`을 first responder에게 보내 전체 선택을 강제한다.
+@MainActor
+private func selectAllInFocusedField() {
+    // SwiftUI focus 적용 직후 한 틱 양보 — TextField가 first responder가 된 뒤 호출돼야 한다.
+    DispatchQueue.main.async {
+        NSApp.keyWindow?.firstResponder?.tryToPerform(
+            #selector(NSText.selectAll(_:)), with: nil
+        )
+    }
+}
 
 struct PathHistoryMenuButton: View {
     let pane: PaneSlot
@@ -41,6 +54,7 @@ struct AddressPopoverView: View {
     @Bindable var state: PaneState
     let fs: FileSystemActor
     let onClose: @MainActor () -> Void
+    let onTabToggleActivePane: @MainActor () -> Void
 
     @FocusState private var fieldFocused: Bool
 
@@ -56,9 +70,19 @@ struct AddressPopoverView: View {
                         .fill(Color.white.opacity(0.06))
                 )
                 .focused($fieldFocused)
-                .onAppear { fieldFocused = (state.addressListFocusIndex == nil) }
+                .onAppear {
+                    fieldFocused = (state.addressListFocusIndex == nil)
+                    selectAllInFocusedField()
+                }
                 .onChange(of: state.addressListFocusIndex) { _, new in
-                    fieldFocused = (new == nil)
+                    let nowOnField = (new == nil)
+                    fieldFocused = nowOnField
+                    if nowOnField { selectAllInFocusedField() }
+                }
+                // ⌘L 재누름 (address-bar-history.md R5) → TextField로 복귀 + 전체 선택
+                .onChange(of: state.addressFocusToken) { _, _ in
+                    fieldFocused = true
+                    selectAllInFocusedField()
                 }
                 .onSubmit {
                     Task { await state.submitAddressDraft(via: fs) }
@@ -104,6 +128,12 @@ struct AddressPopoverView: View {
             onClose()
             return .handled
         }
+        .onKeyPress(.tab) {
+            // Tab → popover close + 활성 패널 toggle
+            onClose()
+            onTabToggleActivePane()
+            return .handled
+        }
         .onKeyPress(.upArrow) {
             guard state.addressListFocusIndex != nil else { return .ignored }
             state.focusListPrevious()
@@ -121,6 +151,16 @@ struct AddressPopoverView: View {
                 onClose()
             }
             return .handled
+        }
+        // ⌘L 재누름 → TextField로 복귀 + 전체 선택 (한글 IME 정규화 포함)
+        .onKeyPress { press in
+            let qwerty = KoreanShortcutNormalizer.qwertyCharacter(for: press)
+            if qwerty == "l", press.modifiers.contains(.command) {
+                state.focusTextField()
+                state.addressFocusToken &+= 1
+                return .handled
+            }
+            return .ignored
         }
     }
 

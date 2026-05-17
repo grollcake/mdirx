@@ -1,28 +1,29 @@
-# `scripts/gen_xcode_pbx.py`에 새 Swift 파일 등록: 4곳 일관 추가
+# [DEPRECATED] `scripts/gen_xcode_pbx.py`에 새 Swift 파일 등록: 5곳 일관 추가
 
-## 상황 / 의도
-`KoreanShortcutNormalizer.swift`/`KoreanShortcutNormalizerTests.swift` 두 파일을 추가하고 `python3 scripts/gen_xcode_pbx.py` 만 다시 돌렸더니 빌드가 `cannot find 'KoreanShortcutNormalizer' in scope`로 실패했다. 파일은 디스크에 있고 import도 필요 없었지만, **pbxproj 생성 스크립트에 ID·참조·그룹·빌드 페이즈를 추가하지 않으면 컴파일 대상에 포함되지 않는다**.
+> **이 노트는 2026-05-17 18:30(`7fd1ff1`)부터 적용 안 됨.**
+> `gen_xcode_pbx.py`가 자동 디렉터리 스캔으로 전환되어 새 Swift 파일은
+> `python3 scripts/gen_xcode_pbx.py` 한 번만 다시 돌리면 자동 등록된다.
+> 수동 등록 항목은 더 이상 없다.
 
-## 잘못된 접근
-`gen_xcode_pbx.py`가 디렉터리를 자동 스캔할 거라 가정하고 파일만 새로 만들고 스크립트 재실행. → 스크립트는 **하드코딩 화이트리스트** 기반이라 새 파일이 누락된다.
+## 현재 절차 (2026-05-17 18:30 이후)
 
-## 올바른 해결
-새 파일 1개를 추가할 때 스크립트의 다음 **모든 곳에 일관되게 짧은 식별자를 넣어야** 한다.
+1. 디스크에 `*.swift` 파일을 만든다.
+2. `python3 scripts/gen_xcode_pbx.py` 실행 — `App/`, `Core/`, `Features/`, `DesignSystem/`, `Tests/UnitTests/`, `Tests/UITests/` 하위가 자동 스캔된다.
+3. `xcodebuild build` 로 검증.
 
-체크리스트 (앱 src 기준, test는 `_TEST` suffix 동일 패턴):
+리소스(Asset/엔타이틀먼트/Localizable) 4건은 여전히 하드코딩 — 그쪽을 새로 추가할 때만 스크립트 본문을 손댄다.
 
-1. **UID 등록 (상단 `U = {k: uid() ...}` 리스트)**
-   - `FR_<NAME>` (FileReference), `BF_<NAME>` (BuildFile) 두 키 추가.
-2. **`PBXBuildFile` 섹션** — `BF_<NAME>` 한 줄.
-3. **`PBXFileReference` 섹션** — `FR_<NAME>` 한 줄.
-4. **소속 그룹의 children 리스트** (예: `DUAL_GRP /* DualPane */` 안) — `FR_<NAME>` 한 줄.
-5. **해당 타겟의 `PBXSourcesBuildPhase` 파일 리스트** — `BF_<NAME>` 한 줄.
+## 과거 함정 (참고용)
 
-5곳 중 한 군데만 빠뜨려도 빌드가 깨진다. 빌드 에러 메시지가 "cannot find ... in scope"여도 실제 원인은 **컴파일 대상 미등록**일 수 있으니, 이 체크리스트를 먼저 점검할 것.
+자동 스캔 전에는 새 파일 1개마다 스크립트의 **5곳**에 일관 식별자를 넣어야 했다. UID·BuildFile·FileReference·Group children·SourcesBuildPhase. 하나라도 빠지면 "cannot find ... in scope" 빌드 실패. 이번 자동 스캔 도입으로 폐기됨.
 
-## 더 깔끔한 대안 (현 시점 미적용)
-스크립트가 디렉터리를 walk하면서 자동 등록하면 이 함정 자체가 사라진다. 다만 신뢰성 있는 UID 안정화·정렬 정책이 필요해 현재는 하드코딩 유지. 새 파일을 자주 추가할 때 비용이 커지면 자동화로 전환 검토.
+## 교훈
+
+- 같은 함정이 반복되면 **함정 자체를 없애는** 자동화가 매뉴얼 체크리스트보다 낫다.
+- 새 함정 발견 → learning 작성과 동시에 "이게 자동화 가능한가" 한 번은 묻기.
 
 ## 참고
-- 스크립트: [`scripts/gen_xcode_pbx.py`](../../../scripts/gen_xcode_pbx.py)
-- 함께 보면 좋은 노트: [`pbxproj-gen-script-required-for-new-sources.md`](pbxproj-gen-script-required-for-new-sources.md) — 새 파일 추가 후 스크립트 자체를 안 돌렸을 때의 함정.
+
+- 현재 스크립트: [`scripts/gen_xcode_pbx.py`](../../../scripts/gen_xcode_pbx.py)
+- 자동화 전환 계획: [`.plan/0517-1830-pbxgen-autoscan-and-keybinding-table.done.md`](../../../.plan/0517-1830-pbxgen-autoscan-and-keybinding-table.done.md)
+- 함께 보면 좋은 노트: [`pbxproj-gen-script-required-for-new-sources.md`](pbxproj-gen-script-required-for-new-sources.md) — 스크립트 자체를 안 돌렸을 때의 함정 (여전히 유효).

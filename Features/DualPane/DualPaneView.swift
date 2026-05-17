@@ -14,6 +14,7 @@ struct DualPaneView: View {
                 accessibilityPaneId: "pane.left",
                 fs: session.fs,
                 onActivate: { session.activePane = .left },
+                onToggleActivePane: { session.toggleActive() },
                 onDoubleClick: {
                     Task { await session.left.handleDoubleClick(via: session.fs) }
                 },
@@ -57,6 +58,7 @@ struct DualPaneView: View {
                 accessibilityPaneId: "pane.right",
                 fs: session.fs,
                 onActivate: { session.activePane = .right },
+                onToggleActivePane: { session.toggleActive() },
                 onDoubleClick: {
                     Task { await session.right.handleDoubleClick(via: session.fs) }
                 },

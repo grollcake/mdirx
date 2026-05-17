@@ -5,6 +5,7 @@ struct PaneHeaderView: View {
     let fs: FileSystemActor
     let pathHistory: PathHistoryStore
     let onActivate: @MainActor () -> Void
+    let onToggleActivePane: @MainActor () -> Void
     let onSegmentTap: @MainActor (URL) -> Void
 
     var body: some View {
@@ -45,7 +46,8 @@ struct PaneHeaderView: View {
             AddressPopoverView(
                 state: state,
                 fs: fs,
-                onClose: { state.cancelAddressEditing() }
+                onClose: { state.cancelAddressEditing() },
+                onTabToggleActivePane: onToggleActivePane
             )
         }
         .accessibilityIdentifier("pane.\(state.slot.rawValue).header")

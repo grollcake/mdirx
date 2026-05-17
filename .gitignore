@@ -41,6 +41,17 @@ Simulator\ Logs/
 *.dSYM/
 *.dSYM.zip
 *.ipa
+*.profraw
+
+# Xcode build caches under custom dist output
+dist/Build/
+dist/Logs/
+dist/CompilationCache.noindex/
+dist/Index.noindex/
+dist/ModuleCache.noindex/
+dist/SDKStatCaches.noindex/
+dist/*Tests.swiftmodule/
+dist/info.plist
 
 # Logs
 *.log
