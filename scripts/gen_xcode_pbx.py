@@ -1,62 +1,96 @@
 #!/usr/bin/env python3
-"""Generate MdirX.xcodeproj/project.pbxproj with all source files."""
-import uuid
+"""Generate MdirX.xcodeproj/project.pbxproj by scanning source directories.
+
+새 파일을 추가하면 이 스크립트만 다시 돌리면 자동으로 등록된다.
+UID는 (namespace + 경로) SHA-1 해시 기반이라 같은 파일에는 같은 UID가 부여돼
+diff가 안정적이다.
+
+Source 디렉터리:
+- App/                 → MdirX 타겟
+- Core/                → MdirX 타겟
+- Features/            → MdirX 타겟
+- DesignSystem/        → MdirX 타겟
+- Tests/UnitTests/     → MdirXTests 타겟
+- Tests/UITests/       → MdirXUITests 타겟
+
+리소스(Assets.xcassets, *.entitlements, Localization/*.lproj/Localizable.strings,
+GeneratedAssetSymbols.swift), 타겟 설정·의존성·빌드 컨피그는 하단의
+하드코딩 섹션을 유지.
+"""
+import hashlib
 from pathlib import Path
 
-def uid() -> str:
-    return uuid.uuid4().hex[:24].upper()
 
-U = {k: uid() for k in [
-    "PROJECT", "MAIN_GRP", "PROD_GRP", "FEAT_GRP", "ADDRESS_GRP", "DUAL_GRP", "PANE_GRP",
-    "CORE_PARENT", "CORE_PERSIST", "CORE_MODELS_GRP", "CORE_FS", "CORE_VOL", "CORE_SETTINGS", "DS_GRP",
-    "APP_GRP", "RES_GRP", "TEST_GRP",
+def stable_uid(namespace: str, key: str) -> str:
+    digest = hashlib.sha1(f"{namespace}::{key}".encode()).hexdigest()
+    return digest[:24].upper()
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+APP_SOURCE_DIRS = ["App", "Core", "DesignSystem", "Features"]
+UNIT_TEST_DIR = "Tests/UnitTests"
+UI_TEST_DIR = "Tests/UITests"
+
+# Stable UID 네임스페이스
+NS_FR = "FR"              # PBXFileReference (per source file)
+NS_BF_APP = "BF:app"      # MdirX 타겟 PBXBuildFile
+NS_BF_TEST = "BF:test"    # MdirXTests 타겟 PBXBuildFile
+NS_BF_UIT = "BF:uit"      # MdirXUITests 타겟 PBXBuildFile
+NS_GROUP = "GROUP"        # PBXGroup (per directory)
+
+
+# ─── 1) 디스크 스캔 ──────────────────────────────────────────────
+
+def scan_swift_files(dirs: list[str]) -> list[Path]:
+    files: list[Path] = []
+    for d in dirs:
+        base = ROOT / d
+        if not base.exists():
+            continue
+        for path in sorted(base.rglob("*.swift")):
+            if path.is_file():
+                files.append(path.relative_to(ROOT))
+    return files
+
+
+app_files = scan_swift_files(APP_SOURCE_DIRS)
+unit_test_files = scan_swift_files([UNIT_TEST_DIR])
+ui_test_files = scan_swift_files([UI_TEST_DIR])
+
+# 그룹 = 발견된 파일의 부모 디렉터리 전부 (최상위 ROOT는 제외)
+group_dirs: set[Path] = set()
+for f in app_files + unit_test_files + ui_test_files:
+    p = f.parent
+    while str(p) not in (".", ""):
+        group_dirs.add(p)
+        p = p.parent
+group_dirs_sorted = sorted(group_dirs, key=lambda p: (len(p.parts), str(p)))
+
+
+# ─── 2) UID ──────────────────────────────────────────────────────
+
+def fr_uid(rel: Path) -> str:
+    return stable_uid(NS_FR, str(rel))
+
+
+def bf_uid(ns: str, rel: Path) -> str:
+    return stable_uid(ns, str(rel))
+
+
+def group_uid(rel: Path) -> str:
+    return stable_uid(NS_GROUP, str(rel))
+
+
+# 타겟/구성 등 하드코딩 UID (직접 해시로 stable 처리)
+U = {k: stable_uid("PBX", k) for k in [
+    "PROJECT", "MAIN_GRP", "PROD_GRP",
+    "APP_GRP", "RES_GRP",
     "MDIRX_SUPP", "TPSRC", "UTPSRC",
     "APP_PROD", "TEST_PROD", "UITEST_PROD",
-    # App sources
-    "FR_APP", "FR_MODEL", "FR_ASSETS", "FR_ENT", "FR_EN", "FR_KO",
-    "FR_ENTRY", "FR_FS", "FR_VOL",
-    "FR_BROWSER", "FR_DUAL", "FR_PANE_ST", "FR_KOREAN_NORM",
-    "FR_PANE_COL", "FR_FILE_LIST", "FR_SUMMARY", "FR_STATUS",
-    "FR_BREADCRUMB", "FR_PANE_HEADER", "FR_PANE_ROW", "FR_VOL_BADGE",
-    "FR_TOKENS",
-    "FR_APPSETTINGS", "FR_COLORSETTINGS",
-    "FR_NAME_EDIT_MODAL",
-    "FR_PATH_ENTRY", "FR_PATH_STORE", "FR_ADDR_VAL", "FR_ADDR_BAR",
-    # Unit tests
-    "FR_SMOKE", "FR_BROWSER_TEST", "FR_FSTEST", "FR_PSTEST",
-    "FR_BREAD_TEST", "FR_DBLCLICK_TEST", "FR_CURSOR_TEST",
-    "FR_PANE_ROWS_TEST", "FR_PARENT_SYNTH_TEST",
-    "FR_ATTRS_TEST", "FR_TIME_TEST", "FR_STATUSBAR_TEST",
-    "FR_APPSETTINGS_TEST", "FR_PANE_SEL_TEST",
-    "FR_NAME_EDIT_TEST",     "FR_FS_WRITE_TEST",
-    "FR_PATH_HIST_TEST", "FR_KOREAN_NORM_TEST",
-    # UI tests
-    "FR_UI", "FR_UIT_DUAL", "FR_UIT_NAV",
-    "FR_UIT_MOUSE", "FR_UIT_PARENT", "FR_UIT_NEXUS",
-    "FR_UIT_RENAME",
-    # Build files - app
-    "BF_APP", "BF_MODEL", "BF_ASSETS", "BF_EN", "BF_KO",
-    "BF_ENTRY", "BF_FS", "BF_VOL",
-    "BF_BROWSER", "BF_DUAL", "BF_PANE_ST", "BF_KOREAN_NORM",
-    "BF_PANE_COL", "BF_FILE_LIST", "BF_SUMMARY", "BF_STATUS",
-    "BF_BREADCRUMB", "BF_PANE_HEADER", "BF_PANE_ROW", "BF_VOL_BADGE",
-    "BF_TOKENS",
-    "BF_APPSETTINGS", "BF_COLORSETTINGS",
-    "BF_NAME_EDIT_MODAL",
-    "BF_PATH_ENTRY", "BF_PATH_STORE", "BF_ADDR_VAL", "BF_ADDR_BAR",
-    # Build files - unit tests
-    "BF_SMOKE", "BF_BROWSER_TEST", "BF_FSTEST", "BF_PSTEST",
-    "BF_BREAD_TEST", "BF_DBLCLICK_TEST", "BF_CURSOR_TEST",
-    "BF_PANE_ROWS_TEST", "BF_PARENT_SYNTH_TEST",
-    "BF_ATTRS_TEST", "BF_TIME_TEST", "BF_STATUSBAR_TEST",
-    "BF_APPSETTINGS_TEST", "BF_PANE_SEL_TEST",
-    "BF_NAME_EDIT_TEST",     "BF_FS_WRITE_TEST",
-    "BF_PATH_HIST_TEST", "BF_KOREAN_NORM_TEST",
-    # Build files - UI tests
-    "BF_UI", "BF_UIT_DUAL", "BF_UIT_NAV",
-    "BF_UIT_MOUSE", "BF_UIT_PARENT", "BF_UIT_NEXUS",
-    "BF_UIT_RENAME",
-    # Targets/phases
+    "FR_ASSETS", "BF_ASSETS",
+    "FR_ENT",
+    "FR_EN", "FR_KO", "BF_EN", "BF_KO",
     "MTARGET", "TTARGET", "UTTARGET",
     "APSRC", "APRES", "APFRMWK", "BAA", "BAT", "BAB", "BAUT",
     "DEP", "DEPUT", "PROXY", "PROXYUT",
@@ -64,13 +98,175 @@ U = {k: uid() for k in [
     "DBG_PROJ", "REL_PROJ", "ACFG", "TCFG", "UTCFG", "PCFG",
 ]}
 
-def sec(name):
-    return f"/* Begin {name} section */"
 
-def endsec(name):
-    return f"/* End {name} section */"
+# ─── 3) 섹션 빌더 ────────────────────────────────────────────────
+
+def comment(rel: Path) -> str:
+    return rel.name
+
+
+def build_file_lines() -> str:
+    lines: list[str] = []
+    for f in app_files:
+        lines.append(
+            f"\t\t{bf_uid(NS_BF_APP, f)} /* {comment(f)} in Sources */ "
+            f"= {{isa = PBXBuildFile; fileRef = {fr_uid(f)}; }};"
+        )
+    for f in unit_test_files:
+        lines.append(
+            f"\t\t{bf_uid(NS_BF_TEST, f)} /* {comment(f)} in Sources */ "
+            f"= {{isa = PBXBuildFile; fileRef = {fr_uid(f)}; }};"
+        )
+    for f in ui_test_files:
+        lines.append(
+            f"\t\t{bf_uid(NS_BF_UIT, f)} /* {comment(f)} in Sources */ "
+            f"= {{isa = PBXBuildFile; fileRef = {fr_uid(f)}; }};"
+        )
+    # 리소스 build file
+    lines.append(
+        f"\t\t{U['BF_ASSETS']} /* Assets.xcassets in Resources */ "
+        f"= {{isa = PBXBuildFile; fileRef = {U['FR_ASSETS']}; }};"
+    )
+    lines.append(
+        f"\t\t{U['BF_EN']} /* en Localizable.strings in Resources */ "
+        f"= {{isa = PBXBuildFile; fileRef = {U['FR_EN']}; }};"
+    )
+    lines.append(
+        f"\t\t{U['BF_KO']} /* ko Localizable.strings in Resources */ "
+        f"= {{isa = PBXBuildFile; fileRef = {U['FR_KO']}; }};"
+    )
+    return "\n".join(lines)
+
+
+def file_reference_lines() -> str:
+    lines: list[str] = []
+    for f in app_files + unit_test_files + ui_test_files:
+        lines.append(
+            f"\t\t{fr_uid(f)} /* {comment(f)} */ "
+            f"= {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; "
+            f"path = {comment(f)}; sourceTree = \"<group>\"; }};"
+        )
+    # 리소스 / 산출물 / 엔타이틀먼트
+    lines.append(
+        f"\t\t{U['FR_ASSETS']} /* Assets.xcassets */ "
+        f"= {{isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; "
+        f"path = Resources/Assets.xcassets; sourceTree = \"<group>\"; }};"
+    )
+    lines.append(
+        f"\t\t{U['FR_ENT']} /* MdirX.entitlements */ "
+        f"= {{isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; "
+        f"path = MdirX/MdirX.entitlements; sourceTree = \"<group>\"; }};"
+    )
+    lines.append(
+        f"\t\t{U['FR_EN']} /* en/Localizable.strings */ "
+        f"= {{isa = PBXFileReference; lastKnownFileType = text.plist.strings; "
+        f"name = Localizable.strings; path = Resources/Localization/en.lproj/Localizable.strings; "
+        f"sourceTree = \"<group>\"; }};"
+    )
+    lines.append(
+        f"\t\t{U['FR_KO']} /* ko/Localizable.strings */ "
+        f"= {{isa = PBXFileReference; lastKnownFileType = text.plist.strings; "
+        f"name = Localizable.strings; path = Resources/Localization/ko.lproj/Localizable.strings; "
+        f"sourceTree = \"<group>\"; }};"
+    )
+    lines.append(
+        f"\t\t{U['APP_PROD']} /* MdirX.app */ "
+        f"= {{isa = PBXFileReference; explicitFileType = wrapper.application; "
+        f"includeInIndex = 0; path = MdirX.app; sourceTree = BUILT_PRODUCTS_DIR; }};"
+    )
+    lines.append(
+        f"\t\t{U['TEST_PROD']} /* MdirXTests.xctest */ "
+        f"= {{isa = PBXFileReference; explicitFileType = wrapper.cfbundle; "
+        f"includeInIndex = 0; path = MdirXTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; }};"
+    )
+    lines.append(
+        f"\t\t{U['UITEST_PROD']} /* MdirXUITests.xctest */ "
+        f"= {{isa = PBXFileReference; explicitFileType = wrapper.cfbundle; "
+        f"includeInIndex = 0; path = MdirXUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; }};"
+    )
+    return "\n".join(lines)
+
+
+def group_children_of(parent: Path | None) -> list[str]:
+    """parent (None=root) 바로 아래의 자식 그룹/파일 UID 목록."""
+    children: list[tuple[str, str]] = []  # (name, uid_line)
+    # 하위 그룹
+    for d in group_dirs_sorted:
+        if d.parent == (parent if parent is not None else Path(".")):
+            children.append((d.name, f"\t\t\t\t{group_uid(d)} /* {d.name} */,"))
+    # 직접 자식 파일 (해당 디렉터리에 직접 있는 .swift)
+    direct_files = [f for f in (app_files + unit_test_files + ui_test_files)
+                    if f.parent == (parent if parent is not None else Path("."))]
+    for f in direct_files:
+        children.append((f.name, f"\t\t\t\t{fr_uid(f)} /* {f.name} */,"))
+    # 정렬: 그룹 우선, 그 안에서 이름 알파벳
+    children.sort(key=lambda x: x[0].lower())
+    return [c[1] for c in children]
+
+
+def main_group_children_lines() -> str:
+    """루트 PBXGroup이 가질 자식들: 발견된 최상위 디렉터리 그룹 + Resources 그룹 + Products 그룹."""
+    top_dirs: list[Path] = []
+    for d in group_dirs_sorted:
+        if len(d.parts) == 1:
+            top_dirs.append(d)
+    # 알파벳 정렬
+    top_dirs.sort(key=lambda d: d.name.lower())
+
+    lines: list[str] = []
+    for d in top_dirs:
+        lines.append(f"\t\t\t\t{group_uid(d)} /* {d.name} */,")
+    # Tests/ 자체도 별도 그룹으로
+    if any(d.parts[0] == "Tests" for d in group_dirs_sorted):
+        # Tests는 그룹 내에 UnitTests/UITests 가짐
+        pass  # 이미 top_dirs에 "Tests"가 포함될 것
+    lines.append(f"\t\t\t\t{U['RES_GRP']} /* Resources */,")
+    lines.append(f"\t\t\t\t{U['PROD_GRP']} /* Products */,")
+    return "\n".join(lines)
+
+
+def group_definition_lines() -> str:
+    """각 디렉터리 그룹의 정의."""
+    lines: list[str] = []
+    for d in group_dirs_sorted:
+        children = group_children_of(d)
+        lines.append(f"\t\t{group_uid(d)} /* {d.name} */ = {{")
+        lines.append("\t\t\tisa = PBXGroup;")
+        lines.append("\t\t\tchildren = (")
+        for c in children:
+            lines.append(c)
+        lines.append("\t\t\t);")
+        lines.append(f"\t\t\tpath = {d.name};")
+        lines.append("\t\t\tsourceTree = \"<group>\";")
+        lines.append("\t\t};")
+    return "\n".join(lines)
+
+
+def app_sources_phase_lines() -> str:
+    return "\n".join(
+        f"\t\t\t\t{bf_uid(NS_BF_APP, f)} /* {f.name} in Sources */,"
+        for f in app_files
+    )
+
+
+def test_sources_phase_lines() -> str:
+    return "\n".join(
+        f"\t\t\t\t{bf_uid(NS_BF_TEST, f)} /* {f.name} in Sources */,"
+        for f in unit_test_files
+    )
+
+
+def uit_sources_phase_lines() -> str:
+    return "\n".join(
+        f"\t\t\t\t{bf_uid(NS_BF_UIT, f)} /* {f.name} in Sources */,"
+        for f in ui_test_files
+    )
+
+
+# ─── 4) pbxproj 출력 ─────────────────────────────────────────────
 
 u = U
+
 pbx = f"""// !$*UTF8*$!
 {{
 \tarchiveVersion = 1;
@@ -79,140 +275,42 @@ pbx = f"""// !$*UTF8*$!
 \tobjectVersion = 56;
 \tobjects = {{
 
-{sec("PBXBuildFile")}
-\t\t{u['BF_APP']} /* MdirXApp.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_APP']}; }};
-\t\t{u['BF_MODEL']} /* ModelContainer.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_MODEL']}; }};
-\t\t{u['BF_ENTRY']} /* DirectoryEntry.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_ENTRY']}; }};
-\t\t{u['BF_FS']} /* FileSystemActor.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_FS']}; }};
-\t\t{u['BF_VOL']} /* VolumeService.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_VOL']}; }};
-\t\t{u['BF_TOKENS']} /* Tokens.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_TOKENS']}; }};
-\t\t{u['BF_APPSETTINGS']} /* AppSettings.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_APPSETTINGS']}; }};
-\t\t{u['BF_COLORSETTINGS']} /* ColorSettings.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_COLORSETTINGS']}; }};
-\t\t{u['BF_BROWSER']} /* BrowserSession.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_BROWSER']}; }};
-\t\t{u['BF_DUAL']} /* DualPaneView.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_DUAL']}; }};
-\t\t{u['BF_PANE_ST']} /* PaneState.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_PANE_ST']}; }};
-\t\t{u['BF_KOREAN_NORM']} /* KoreanShortcutNormalizer.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_KOREAN_NORM']}; }};
-\t\t{u['BF_PANE_COL']} /* PaneColumnView.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_PANE_COL']}; }};
-\t\t{u['BF_FILE_LIST']} /* FileListView.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_FILE_LIST']}; }};
-\t\t{u['BF_SUMMARY']} /* PaneSummaryView.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_SUMMARY']}; }};
-\t\t{u['BF_STATUS']} /* PaneStatusBar.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_STATUS']}; }};
-\t\t{u['BF_BREADCRUMB']} /* BreadcrumbView.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_BREADCRUMB']}; }};
-\t\t{u['BF_PANE_HEADER']} /* PaneHeaderView.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_PANE_HEADER']}; }};
-\t\t{u['BF_PANE_ROW']} /* PaneRow.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_PANE_ROW']}; }};
-\t\t{u['BF_VOL_BADGE']} /* VolumeBadgeView.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_VOL_BADGE']}; }};
-\t\t{u['BF_ASSETS']} /* Assets.xcassets in Resources */ = {{isa = PBXBuildFile; fileRef = {u['FR_ASSETS']}; }};
-\t\t{u['BF_EN']} /* en Localizable.strings in Resources */ = {{isa = PBXBuildFile; fileRef = {u['FR_EN']}; }};
-\t\t{u['BF_KO']} /* ko Localizable.strings in Resources */ = {{isa = PBXBuildFile; fileRef = {u['FR_KO']}; }};
-\t\t{u['BF_SMOKE']} /* SmokeTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_SMOKE']}; }};
-\t\t{u['BF_BROWSER_TEST']} /* BrowserSessionTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_BROWSER_TEST']}; }};
-\t\t{u['BF_FSTEST']} /* FileSystemActorTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_FSTEST']}; }};
-\t\t{u['BF_PSTEST']} /* PaneStateTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_PSTEST']}; }};
-\t\t{u['BF_BREAD_TEST']} /* BreadcrumbBreakdownTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_BREAD_TEST']}; }};
-\t\t{u['BF_DBLCLICK_TEST']} /* DoubleClickRoutingTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_DBLCLICK_TEST']}; }};
-\t\t{u['BF_CURSOR_TEST']} /* PaneCursorInitTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_CURSOR_TEST']}; }};
-\t\t{u['BF_PANE_ROWS_TEST']} /* PaneRowsTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_PANE_ROWS_TEST']}; }};
-\t\t{u['BF_PARENT_SYNTH_TEST']} /* ParentLinkSynthesisTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_PARENT_SYNTH_TEST']}; }};
-\t\t{u['BF_ATTRS_TEST']} /* AttrsFourCharacterTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_ATTRS_TEST']}; }};
-\t\t{u['BF_TIME_TEST']} /* TimeHHmmFormatTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_TIME_TEST']}; }};
-\t\t{u['BF_STATUSBAR_TEST']} /* StatusBarFormatTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_STATUSBAR_TEST']}; }};
-\t\t{u['BF_APPSETTINGS_TEST']} /* AppSettingsTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_APPSETTINGS_TEST']}; }};
-\t\t{u['BF_PANE_SEL_TEST']} /* PaneSelectionTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_PANE_SEL_TEST']}; }};
-\t\t{u['BF_NAME_EDIT_TEST']} /* NameEditTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_NAME_EDIT_TEST']}; }};
-\t\t{u['BF_FS_WRITE_TEST']} /* FileSystemActorWriteTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_FS_WRITE_TEST']}; }};
-\t\t{u['BF_PATH_HIST_TEST']} /* PathHistoryStoreTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_PATH_HIST_TEST']}; }};
-\t\t{u['BF_KOREAN_NORM_TEST']} /* KoreanShortcutNormalizerTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_KOREAN_NORM_TEST']}; }};
-\t\t{u['BF_NAME_EDIT_MODAL']} /* NameEditModal.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_NAME_EDIT_MODAL']}; }};
-\t\t{u['BF_PATH_ENTRY']} /* PathHistoryEntry.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_PATH_ENTRY']}; }};
-\t\t{u['BF_PATH_STORE']} /* PathHistoryStore.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_PATH_STORE']}; }};
-\t\t{u['BF_ADDR_VAL']} /* AddressPathValidation.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_ADDR_VAL']}; }};
-\t\t{u['BF_ADDR_BAR']} /* AddressBarView.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_ADDR_BAR']}; }};
-\t\t{u['BF_UIT_RENAME']} /* RenameNewFolderNewFileTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_UIT_RENAME']}; }};
-\t\t{u['BF_UI']} /* LaunchTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_UI']}; }};
-\t\t{u['BF_UIT_DUAL']} /* DualPaneTabToggleTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_UIT_DUAL']}; }};
-\t\t{u['BF_UIT_NAV']} /* FileListNavigationTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_UIT_NAV']}; }};
-\t\t{u['BF_UIT_MOUSE']} /* MouseActivationAndDoubleClickTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_UIT_MOUSE']}; }};
-\t\t{u['BF_UIT_PARENT']} /* ParentLinkVisibleTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_UIT_PARENT']}; }};
-\t\t{u['BF_UIT_NEXUS']} /* NexusLookExactTests.swift in Sources */ = {{isa = PBXBuildFile; fileRef = {u['FR_UIT_NEXUS']}; }};
-{endsec("PBXBuildFile")}
+/* Begin PBXBuildFile section */
+{build_file_lines()}
+/* End PBXBuildFile section */
 
-{sec("PBXFileReference")}
-\t\t{u['APP_PROD']} /* MdirX.app */ = {{isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MdirX.app; sourceTree = BUILT_PRODUCTS_DIR; }};
-\t\t{u['TEST_PROD']} /* MdirXTests.xctest */ = {{isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MdirXTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; }};
-\t\t{u['UITEST_PROD']} /* MdirXUITests.xctest */ = {{isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MdirXUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; }};
-\t\t{u['FR_APP']} /* MdirXApp.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MdirXApp.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_MODEL']} /* ModelContainer.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelContainer.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_ENTRY']} /* DirectoryEntry.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectoryEntry.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_FS']} /* FileSystemActor.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSystemActor.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_VOL']} /* VolumeService.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolumeService.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_TOKENS']} /* Tokens.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tokens.swift; sourceTree = "<group>"; }};
-		{u['FR_APPSETTINGS']} /* AppSettings.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; }};
-		{u['FR_COLORSETTINGS']} /* ColorSettings.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorSettings.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_BROWSER']} /* BrowserSession.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserSession.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_DUAL']} /* DualPaneView.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DualPaneView.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_PANE_ST']} /* PaneState.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneState.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_KOREAN_NORM']} /* KoreanShortcutNormalizer.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoreanShortcutNormalizer.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_PANE_COL']} /* PaneColumnView.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneColumnView.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_FILE_LIST']} /* FileListView.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileListView.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_SUMMARY']} /* PaneSummaryView.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneSummaryView.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_STATUS']} /* PaneStatusBar.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneStatusBar.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_BREADCRUMB']} /* BreadcrumbView.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BreadcrumbView.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_PANE_HEADER']} /* PaneHeaderView.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneHeaderView.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_PANE_ROW']} /* PaneRow.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneRow.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_VOL_BADGE']} /* VolumeBadgeView.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolumeBadgeView.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_SMOKE']} /* SmokeTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeTests.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_BROWSER_TEST']} /* BrowserSessionTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserSessionTests.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_FSTEST']} /* FileSystemActorTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSystemActorTests.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_PSTEST']} /* PaneStateTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneStateTests.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_BREAD_TEST']} /* BreadcrumbBreakdownTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BreadcrumbBreakdownTests.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_DBLCLICK_TEST']} /* DoubleClickRoutingTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoubleClickRoutingTests.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_CURSOR_TEST']} /* PaneCursorInitTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneCursorInitTests.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_PANE_ROWS_TEST']} /* PaneRowsTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneRowsTests.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_PARENT_SYNTH_TEST']} /* ParentLinkSynthesisTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentLinkSynthesisTests.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_ATTRS_TEST']} /* AttrsFourCharacterTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttrsFourCharacterTests.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_TIME_TEST']} /* TimeHHmmFormatTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeHHmmFormatTests.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_STATUSBAR_TEST']} /* StatusBarFormatTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarFormatTests.swift; sourceTree = "<group>"; }};
-		{u['FR_APPSETTINGS_TEST']} /* AppSettingsTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsTests.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_PANE_SEL_TEST']} /* PaneSelectionTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneSelectionTests.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_NAME_EDIT_TEST']} /* NameEditTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NameEditTests.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_FS_WRITE_TEST']} /* FileSystemActorWriteTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSystemActorWriteTests.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_PATH_HIST_TEST']} /* PathHistoryStoreTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathHistoryStoreTests.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_KOREAN_NORM_TEST']} /* KoreanShortcutNormalizerTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoreanShortcutNormalizerTests.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_NAME_EDIT_MODAL']} /* NameEditModal.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NameEditModal.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_PATH_ENTRY']} /* PathHistoryEntry.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathHistoryEntry.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_PATH_STORE']} /* PathHistoryStore.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathHistoryStore.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_ADDR_VAL']} /* AddressPathValidation.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressPathValidation.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_ADDR_BAR']} /* AddressBarView.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressBarView.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_UIT_RENAME']} /* RenameNewFolderNewFileTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenameNewFolderNewFileTests.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_UI']} /* LaunchTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchTests.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_UIT_DUAL']} /* DualPaneTabToggleTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DualPaneTabToggleTests.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_UIT_NAV']} /* FileListNavigationTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileListNavigationTests.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_UIT_MOUSE']} /* MouseActivationAndDoubleClickTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseActivationAndDoubleClickTests.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_UIT_PARENT']} /* ParentLinkVisibleTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentLinkVisibleTests.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_UIT_NEXUS']} /* NexusLookExactTests.swift */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NexusLookExactTests.swift; sourceTree = "<group>"; }};
-\t\t{u['FR_ASSETS']} /* Assets.xcassets */ = {{isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; }};
-\t\t{u['FR_ENT']} /* MdirX.entitlements */ = {{isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MdirX.entitlements; sourceTree = "<group>"; }};
-\t\t{u['FR_EN']} /* en/Localizable.strings */ = {{isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = Localizable.strings; path = Localization/en.lproj/Localizable.strings; sourceTree = "<group>"; }};
-\t\t{u['FR_KO']} /* ko/Localizable.strings */ = {{isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = Localizable.strings; path = Localization/ko.lproj/Localizable.strings; sourceTree = "<group>"; }};
-{endsec("PBXFileReference")}
+/* Begin PBXContainerItemProxy section */
+\t\t{u['PROXY']} /* PBXContainerItemProxy */ = {{
+\t\t\tisa = PBXContainerItemProxy;
+\t\t\tcontainerPortal = {u['PROJECT']} /* Project object */;
+\t\t\tproxyType = 1;
+\t\t\tremoteGlobalIDString = {u['MTARGET']};
+\t\t\tremoteInfo = MdirX;
+\t\t}};
+\t\t{u['PROXYUT']} /* PBXContainerItemProxy */ = {{
+\t\t\tisa = PBXContainerItemProxy;
+\t\t\tcontainerPortal = {u['PROJECT']} /* Project object */;
+\t\t\tproxyType = 1;
+\t\t\tremoteGlobalIDString = {u['MTARGET']};
+\t\t\tremoteInfo = MdirX;
+\t\t}};
+/* End PBXContainerItemProxy section */
 
-{sec("PBXFrameworksBuildPhase")}
+/* Begin PBXFileReference section */
+{file_reference_lines()}
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
 \t\t{u['APFRMWK']} = {{isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; }};
-\t\t{u['BAT']} = {{isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; }};
+\t\t{u['BAA']} = {{isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; }};
 \t\t{u['BAUT']} = {{isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; }};
-{endsec("PBXFrameworksBuildPhase")}
+/* End PBXFrameworksBuildPhase section */
 
-{sec("PBXGroup")}
+/* Begin PBXGroup section */
 \t\t{u['MAIN_GRP']} = {{
 \t\t\tisa = PBXGroup;
 \t\t\tchildren = (
-\t\t\t\t{u['APP_GRP']} /* App */,
-\t\t\t\t{u['FEAT_GRP']} /* Features */,
-\t\t\t\t{u['CORE_PARENT']} /* Core */,
-\t\t\t\t{u['DS_GRP']} /* DesignSystem */,
-\t\t\t\t{u['RES_GRP']} /* Resources */,
-\t\t\t\t{u['TEST_GRP']} /* Tests */,
-\t\t\t\t{u['MDIRX_SUPP']} /* MdirX */,
-\t\t\t\t{u['PROD_GRP']} /* Products */,
+{main_group_children_lines()}
 \t\t\t);
 \t\t\tsourceTree = "<group>";
 \t\t}};
@@ -226,188 +324,29 @@ pbx = f"""// !$*UTF8*$!
 \t\t\tname = Products;
 \t\t\tsourceTree = "<group>";
 \t\t}};
-\t\t{u['APP_GRP']} /* App */ = {{
-\t\t\tisa = PBXGroup;
-\t\t\tchildren = ({u['FR_APP']});
-\t\t\tpath = App;
-\t\t\tsourceTree = "<group>";
-\t\t}};
-\t\t{u['DS_GRP']} /* DesignSystem */ = {{
-\t\t\tisa = PBXGroup;
-\t\t\tchildren = ({u['FR_TOKENS']});
-\t\t\tpath = DesignSystem;
-\t\t\tsourceTree = "<group>";
-\t\t}};
-\t\t{u['FEAT_GRP']} /* Features */ = {{
-\t\t\tisa = PBXGroup;
-\t\t\tchildren = (
-\t\t\t\t{u['ADDRESS_GRP']} /* AddressBar */,
-\t\t\t\t{u['DUAL_GRP']} /* DualPane */,
-\t\t\t\t{u['PANE_GRP']} /* Pane */,
-\t\t\t);
-\t\t\tpath = Features;
-\t\t\tsourceTree = "<group>";
-\t\t}};
-\t\t{u['ADDRESS_GRP']} /* AddressBar */ = {{
-\t\t\tisa = PBXGroup;
-\t\t\tchildren = (
-\t\t\t\t{u['FR_ADDR_VAL']},
-\t\t\t\t{u['FR_ADDR_BAR']},
-\t\t\t);
-\t\t\tpath = AddressBar;
-\t\t\tsourceTree = "<group>";
-\t\t}};
-\t\t{u['DUAL_GRP']} /* DualPane */ = {{
-\t\t\tisa = PBXGroup;
-\t\t\tchildren = (
-\t\t\t\t{u['FR_BROWSER']},
-\t\t\t\t{u['FR_PANE_ST']},
-\t\t\t\t{u['FR_DUAL']},
-\t\t\t\t{u['FR_KOREAN_NORM']},
-\t\t\t);
-\t\t\tpath = DualPane;
-\t\t\tsourceTree = "<group>";
-\t\t}};
-\t\t{u['PANE_GRP']} /* Pane */ = {{
-\t\t\tisa = PBXGroup;
-\t\t\tchildren = (
-\t\t\t\t{u['FR_BREADCRUMB']},
-\t\t\t\t{u['FR_FILE_LIST']},
-\t\t\t\t{u['FR_PANE_COL']},
-\t\t\t\t{u['FR_PANE_HEADER']},
-\t\t\t\t{u['FR_PANE_ROW']},
-\t\t\t\t{u['FR_STATUS']},
-\t\t\t\t{u['FR_SUMMARY']},
-\t\t\t\t{u['FR_VOL_BADGE']},
-\t\t\t\t{u['FR_NAME_EDIT_MODAL']},
-\t\t\t);
-\t\t\tpath = Pane;
-\t\t\tsourceTree = "<group>";
-\t\t}};
-\t\t{u['CORE_PARENT']} /* Core */ = {{
-\t\t\tisa = PBXGroup;
-\t\t\tchildren = (
-\t\t\t\t{u['CORE_PERSIST']},
-\t\t\t\t{u['CORE_FS']},
-\t\t\t\t{u['CORE_VOL']},
-\t\t\t\t{u['CORE_SETTINGS']},
-\t\t\t);
-\t\t\tpath = Core;
-\t\t\tsourceTree = "<group>";
-\t\t}};
-\t\t{u['CORE_PERSIST']} /* Persistence */ = {{
-\t\t\tisa = PBXGroup;
-\t\t\tchildren = (
-\t\t\t\t{u['CORE_MODELS_GRP']} /* Models */,
-\t\t\t\t{u['FR_MODEL']},
-\t\t\t\t{u['FR_PATH_STORE']},
-\t\t\t);
-\t\t\tpath = Persistence;
-\t\t\tsourceTree = "<group>";
-\t\t}};
-\t\t{u['CORE_MODELS_GRP']} /* Models */ = {{
-\t\t\tisa = PBXGroup;
-\t\t\tchildren = (
-\t\t\t\t{u['FR_PATH_ENTRY']},
-\t\t\t);
-\t\t\tpath = Models;
-\t\t\tsourceTree = "<group>";
-\t\t}};
-\t\t{u['CORE_FS']} /* FileSystem */ = {{
-\t\t\tisa = PBXGroup;
-\t\t\tchildren = (
-\t\t\t\t{u['FR_ENTRY']},
-\t\t\t\t{u['FR_FS']},
-\t\t\t);
-\t\t\tpath = FileSystem;
-\t\t\tsourceTree = "<group>";
-\t\t}};
-\t\t{u['CORE_VOL']} /* Volumes */ = {{
-\t\t\tisa = PBXGroup;
-\t\t\tchildren = ({u['FR_VOL']});
-\t\t\tpath = Volumes;
-\t\t\tsourceTree = "<group>";
-\t\t}};
-		{u['CORE_SETTINGS']} /* Settings */ = {{
-			isa = PBXGroup;
-			children = (
-				{u['FR_APPSETTINGS']},
-				{u['FR_COLORSETTINGS']},
-			);
-			path = Settings;
-			sourceTree = "<group>";
-		}};
 \t\t{u['RES_GRP']} /* Resources */ = {{
 \t\t\tisa = PBXGroup;
 \t\t\tchildren = (
-\t\t\t\t{u['FR_ASSETS']},
-\t\t\t\t{u['FR_EN']},
-\t\t\t\t{u['FR_KO']},
+\t\t\t\t{u['FR_ASSETS']} /* Assets.xcassets */,
+\t\t\t\t{u['FR_EN']} /* en/Localizable.strings */,
+\t\t\t\t{u['FR_KO']} /* ko/Localizable.strings */,
+\t\t\t\t{u['FR_ENT']} /* MdirX.entitlements */,
 \t\t\t);
-\t\t\tpath = Resources;
+\t\t\tname = Resources;
 \t\t\tsourceTree = "<group>";
 \t\t}};
-\t\t{u['TEST_GRP']} /* Tests */ = {{
-\t\t\tisa = PBXGroup;
-\t\t\tchildren = (
-\t\t\t\t{u['TPSRC']} /* UnitTests */,
-\t\t\t\t{u['UTPSRC']} /* UITests */,
-\t\t\t);
-\t\t\tpath = Tests;
-\t\t\tsourceTree = "<group>";
-\t\t}};
-\t\t{u['TPSRC']} /* UnitTests */ = {{
-\t\t\tisa = PBXGroup;
-\t\t\tchildren = (
-\t\t\t\t{u['FR_SMOKE']},
-\t\t\t\t{u['FR_BROWSER_TEST']},
-\t\t\t\t{u['FR_FSTEST']},
-\t\t\t\t{u['FR_PSTEST']},
-\t\t\t\t{u['FR_BREAD_TEST']},
-\t\t\t\t{u['FR_DBLCLICK_TEST']},
-\t\t\t\t{u['FR_CURSOR_TEST']},
-\t\t\t\t{u['FR_PANE_ROWS_TEST']},
-\t\t\t\t{u['FR_PARENT_SYNTH_TEST']},
-\t\t\t\t{u['FR_ATTRS_TEST']},
-\t\t\t\t{u['FR_TIME_TEST']},
-\t\t\t\t{u['FR_STATUSBAR_TEST']},
-\t\t\t\t{u['FR_APPSETTINGS_TEST']},
-\t\t\t\t{u['FR_PANE_SEL_TEST']},
-\t\t\t\t{u['FR_NAME_EDIT_TEST']},
-\t\t\t\t{u['FR_FS_WRITE_TEST']},
-\t\t\t\t{u['FR_PATH_HIST_TEST']},
-\t\t\t\t{u['FR_KOREAN_NORM_TEST']},
-\t\t\t);
-\t\t\tpath = UnitTests;
-\t\t\tsourceTree = "<group>";
-\t\t}};
-\t\t{u['UTPSRC']} /* UITests */ = {{
-\t\t\tisa = PBXGroup;
-\t\t\tchildren = (
-\t\t\t\t{u['FR_UI']},
-\t\t\t\t{u['FR_UIT_DUAL']},
-\t\t\t\t{u['FR_UIT_NAV']},
-\t\t\t\t{u['FR_UIT_MOUSE']},
-\t\t\t\t{u['FR_UIT_PARENT']},
-\t\t\t\t{u['FR_UIT_NEXUS']},
-\t\t\t\t{u['FR_UIT_RENAME']},
-\t\t\t);
-\t\t\tpath = UITests;
-\t\t\tsourceTree = "<group>";
-\t\t}};
-\t\t{u['MDIRX_SUPP']} /* MdirX */ = {{
-\t\t\tisa = PBXGroup;
-\t\t\tchildren = ({u['FR_ENT']});
-\t\t\tpath = MdirX;
-\t\t\tsourceTree = "<group>";
-\t\t}};
-{endsec("PBXGroup")}
+{group_definition_lines()}
+/* End PBXGroup section */
 
-{sec("PBXNativeTarget")}
+/* Begin PBXNativeTarget section */
 \t\t{u['MTARGET']} /* MdirX */ = {{
 \t\t\tisa = PBXNativeTarget;
 \t\t\tbuildConfigurationList = {u['ACFG']};
-\t\t\tbuildPhases = ({u['APSRC']}, {u['APFRMWK']}, {u['APRES']});
+\t\t\tbuildPhases = (
+\t\t\t\t{u['APSRC']},
+\t\t\t\t{u['APRES']},
+\t\t\t\t{u['APFRMWK']},
+\t\t\t);
 \t\t\tbuildRules = ();
 \t\t\tdependencies = ();
 \t\t\tname = MdirX;
@@ -418,9 +357,14 @@ pbx = f"""// !$*UTF8*$!
 \t\t{u['TTARGET']} /* MdirXTests */ = {{
 \t\t\tisa = PBXNativeTarget;
 \t\t\tbuildConfigurationList = {u['TCFG']};
-\t\t\tbuildPhases = ({u['BAA']}, {u['BAT']});
+\t\t\tbuildPhases = (
+\t\t\t\t{u['TPSRC']},
+\t\t\t\t{u['BAA']},
+\t\t\t);
 \t\t\tbuildRules = ();
-\t\t\tdependencies = ({u['DEP']});
+\t\t\tdependencies = (
+\t\t\t\t{u['DEP']},
+\t\t\t);
 \t\t\tname = MdirXTests;
 \t\t\tproductName = MdirXTests;
 \t\t\tproductReference = {u['TEST_PROD']};
@@ -429,27 +373,31 @@ pbx = f"""// !$*UTF8*$!
 \t\t{u['UTTARGET']} /* MdirXUITests */ = {{
 \t\t\tisa = PBXNativeTarget;
 \t\t\tbuildConfigurationList = {u['UTCFG']};
-\t\t\tbuildPhases = ({u['BAB']}, {u['BAUT']});
+\t\t\tbuildPhases = (
+\t\t\t\t{u['UTPSRC']},
+\t\t\t\t{u['BAUT']},
+\t\t\t);
 \t\t\tbuildRules = ();
-\t\t\tdependencies = ({u['DEPUT']});
+\t\t\tdependencies = (
+\t\t\t\t{u['DEPUT']},
+\t\t\t);
 \t\t\tname = MdirXUITests;
 \t\t\tproductName = MdirXUITests;
 \t\t\tproductReference = {u['UITEST_PROD']};
 \t\t\tproductType = "com.apple.product-type.bundle.ui-testing";
 \t\t}};
-{endsec("PBXNativeTarget")}
+/* End PBXNativeTarget section */
 
-{sec("PBXProject")}
+/* Begin PBXProject section */
 \t\t{u['PROJECT']} /* Project object */ = {{
 \t\t\tisa = PBXProject;
 \t\t\tattributes = {{
-\t\t\t\tBuildIndependentTargetsInParallel = 1;
-\t\t\t\tLastSwiftUpdateCheck = 1600;
-\t\t\t\tLastUpgradeCheck = 1600;
+\t\t\t\tLastSwiftUpdateCheck = 1500;
+\t\t\t\tLastUpgradeCheck = 1500;
 \t\t\t\tTargetAttributes = {{
-\t\t\t\t\t{u['MTARGET']} = {{ CreatedOnToolsVersion = 16.0; }};
-\t\t\t\t\t{u['TTARGET']} = {{ CreatedOnToolsVersion = 16.0; TestTargetID = {u['MTARGET']}; }};
-\t\t\t\t\t{u['UTTARGET']} = {{ CreatedOnToolsVersion = 16.0; TestTargetID = {u['MTARGET']}; }};
+\t\t\t\t\t{u['MTARGET']} = {{ CreatedOnToolsVersion = 15.0; }};
+\t\t\t\t\t{u['TTARGET']} = {{ CreatedOnToolsVersion = 15.0; TestTargetID = {u['MTARGET']}; }};
+\t\t\t\t\t{u['UTTARGET']} = {{ CreatedOnToolsVersion = 15.0; TestTargetID = {u['MTARGET']}; }};
 \t\t\t\t}};
 \t\t\t}};
 \t\t\tbuildConfigurationList = {u['PCFG']};
@@ -461,160 +409,116 @@ pbx = f"""// !$*UTF8*$!
 \t\t\tproductRefGroup = {u['PROD_GRP']};
 \t\t\tprojectDirPath = "";
 \t\t\tprojectRoot = "";
-\t\t\ttargets = ({u['MTARGET']}, {u['TTARGET']}, {u['UTTARGET']});
+\t\t\ttargets = (
+\t\t\t\t{u['MTARGET']},
+\t\t\t\t{u['TTARGET']},
+\t\t\t\t{u['UTTARGET']},
+\t\t\t);
 \t\t}};
-{endsec("PBXProject")}
+/* End PBXProject section */
 
-{sec("PBXResourcesBuildPhase")}
+/* Begin PBXResourcesBuildPhase section */
 \t\t{u['APRES']} = {{
 \t\t\tisa = PBXResourcesBuildPhase;
 \t\t\tbuildActionMask = 2147483647;
 \t\t\tfiles = (
-\t\t\t\t{u['BF_ASSETS']},
-\t\t\t\t{u['BF_EN']},
-\t\t\t\t{u['BF_KO']},
+\t\t\t\t{u['BF_ASSETS']} /* Assets.xcassets in Resources */,
+\t\t\t\t{u['BF_EN']} /* en Localizable.strings in Resources */,
+\t\t\t\t{u['BF_KO']} /* ko Localizable.strings in Resources */,
 \t\t\t);
 \t\t\trunOnlyForDeploymentPostprocessing = 0;
 \t\t}};
-{endsec("PBXResourcesBuildPhase")}
+/* End PBXResourcesBuildPhase section */
 
-{sec("PBXSourcesBuildPhase")}
-\t\t{u['APSRC']} /* App Sources */ = {{
+/* Begin PBXSourcesBuildPhase section */
+\t\t{u['APSRC']} = {{
 \t\t\tisa = PBXSourcesBuildPhase;
 \t\t\tbuildActionMask = 2147483647;
 \t\t\tfiles = (
-\t\t\t\t{u['BF_APP']},
-\t\t\t\t{u['BF_MODEL']},
-\t\t\t\t{u['BF_PATH_ENTRY']},
-\t\t\t\t{u['BF_PATH_STORE']},
-\t\t\t\t{u['BF_ENTRY']},
-\t\t\t\t{u['BF_FS']},
-\t\t\t\t{u['BF_VOL']},
-\t\t\t\t{u['BF_TOKENS']},
-\t\t\t\t{u['BF_APPSETTINGS']},
-\t\t\t\t{u['BF_COLORSETTINGS']},
-\t\t\t\t{u['BF_BROWSER']},
-\t\t\t\t{u['BF_PANE_ST']},
-\t\t\t\t{u['BF_DUAL']},
-\t\t\t\t{u['BF_KOREAN_NORM']},
-\t\t\t\t{u['BF_BREADCRUMB']},
-\t\t\t\t{u['BF_FILE_LIST']},
-\t\t\t\t{u['BF_PANE_COL']},
-\t\t\t\t{u['BF_PANE_HEADER']},
-\t\t\t\t{u['BF_PANE_ROW']},
-\t\t\t\t{u['BF_STATUS']},
-\t\t\t\t{u['BF_SUMMARY']},
-\t\t\t\t{u['BF_VOL_BADGE']},
-\t\t\t\t{u['BF_NAME_EDIT_MODAL']},
-\t\t\t\t{u['BF_ADDR_VAL']},
-\t\t\t\t{u['BF_ADDR_BAR']},
+{app_sources_phase_lines()}
 \t\t\t);
 \t\t\trunOnlyForDeploymentPostprocessing = 0;
 \t\t}};
-\t\t{u['BAA']} /* Unit Test Sources */ = {{
+\t\t{u['TPSRC']} = {{
 \t\t\tisa = PBXSourcesBuildPhase;
 \t\t\tbuildActionMask = 2147483647;
 \t\t\tfiles = (
-\t\t\t\t{u['BF_SMOKE']},
-\t\t\t\t{u['BF_BROWSER_TEST']},
-\t\t\t\t{u['BF_FSTEST']},
-\t\t\t\t{u['BF_PSTEST']},
-\t\t\t\t{u['BF_BREAD_TEST']},
-\t\t\t\t{u['BF_DBLCLICK_TEST']},
-\t\t\t\t{u['BF_CURSOR_TEST']},
-\t\t\t\t{u['BF_PANE_ROWS_TEST']},
-\t\t\t\t{u['BF_PARENT_SYNTH_TEST']},
-\t\t\t\t{u['BF_ATTRS_TEST']},
-\t\t\t\t{u['BF_TIME_TEST']},
-\t\t\t\t{u['BF_STATUSBAR_TEST']},
-\t\t\t\t{u['BF_APPSETTINGS_TEST']},
-\t\t\t\t{u['BF_PANE_SEL_TEST']},
-\t\t\t\t{u['BF_NAME_EDIT_TEST']},
-\t\t\t\t{u['BF_FS_WRITE_TEST']},
-\t\t\t\t{u['BF_PATH_HIST_TEST']},
-\t\t\t\t{u['BF_KOREAN_NORM_TEST']},
+{test_sources_phase_lines()}
 \t\t\t);
 \t\t\trunOnlyForDeploymentPostprocessing = 0;
 \t\t}};
-\t\t{u['BAB']} /* UI Test Sources */ = {{
+\t\t{u['UTPSRC']} = {{
 \t\t\tisa = PBXSourcesBuildPhase;
 \t\t\tbuildActionMask = 2147483647;
 \t\t\tfiles = (
-\t\t\t\t{u['BF_UI']},
-\t\t\t\t{u['BF_UIT_DUAL']},
-\t\t\t\t{u['BF_UIT_NAV']},
-\t\t\t\t{u['BF_UIT_MOUSE']},
-\t\t\t\t{u['BF_UIT_PARENT']},
-\t\t\t\t{u['BF_UIT_NEXUS']},
-\t\t\t\t{u['BF_UIT_RENAME']},
+{uit_sources_phase_lines()}
 \t\t\t);
 \t\t\trunOnlyForDeploymentPostprocessing = 0;
 \t\t}};
-{endsec("PBXSourcesBuildPhase")}
+/* End PBXSourcesBuildPhase section */
 
-{sec("PBXTargetDependency")}
-\t\t{u['DEP']} = {{isa = PBXTargetDependency; target = {u['MTARGET']}; targetProxy = {u['PROXY']}; }};
-\t\t{u['DEPUT']} = {{isa = PBXTargetDependency; target = {u['MTARGET']}; targetProxy = {u['PROXYUT']}; }};
-{endsec("PBXTargetDependency")}
+/* Begin PBXTargetDependency section */
+\t\t{u['DEP']} /* PBXTargetDependency */ = {{
+\t\t\tisa = PBXTargetDependency;
+\t\t\ttarget = {u['MTARGET']};
+\t\t\ttargetProxy = {u['PROXY']};
+\t\t}};
+\t\t{u['DEPUT']} /* PBXTargetDependency */ = {{
+\t\t\tisa = PBXTargetDependency;
+\t\t\ttarget = {u['MTARGET']};
+\t\t\ttargetProxy = {u['PROXYUT']};
+\t\t}};
+/* End PBXTargetDependency section */
 
-{sec("PBXContainerItemProxy")}
-\t\t{u['PROXY']} = {{isa = PBXContainerItemProxy; containerPortal = {u['PROJECT']}; proxyType = 1; remoteGlobalIDString = {u['MTARGET']}; remoteInfo = MdirX; }};
-\t\t{u['PROXYUT']} = {{isa = PBXContainerItemProxy; containerPortal = {u['PROJECT']}; proxyType = 1; remoteGlobalIDString = {u['MTARGET']}; remoteInfo = MdirX; }};
-{endsec("PBXContainerItemProxy")}
-
-{sec("XCBuildConfiguration")}
+/* Begin XCBuildConfiguration section */
 \t\t{u['DBG_APP']} /* Debug */ = {{
 \t\t\tisa = XCBuildConfiguration;
 \t\t\tbuildSettings = {{
-\t\t\t\tASETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-\t\t\t\tCODE_SIGN_ENTITLEMENTS = MdirX/MdirX.entitlements;
+\t\t\t\tASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+\t\t\t\tCODE_SIGN_ENTITLEMENTS = "MdirX/MdirX.entitlements";
+\t\t\t\tCODE_SIGN_IDENTITY = "-";
 \t\t\t\tCODE_SIGN_STYLE = Automatic;
-\t\t\t\tCOMBINE_HIDPI_IMAGES = YES;
 \t\t\t\tCURRENT_PROJECT_VERSION = 1;
-\t\t\t\tDEAD_CODE_STRIPPING = YES;
 \t\t\t\tDEVELOPMENT_TEAM = "";
 \t\t\t\tENABLE_HARDENED_RUNTIME = YES;
-\t\t\t\tENABLE_PREVIEWS = NO;
 \t\t\t\tGENERATE_INFOPLIST_FILE = YES;
-\t\t\t\tINFOPLIST_KEY_CFBundleDisplayName = MdirX;
 \t\t\t\tINFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-\t\t\t\tLD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../Frameworks");
+\t\t\t\tINFOPLIST_KEY_LSMinimumSystemVersion = 15.0;
+\t\t\t\tINFOPLIST_KEY_NSHumanReadableCopyright = "";
 \t\t\t\tMACOSX_DEPLOYMENT_TARGET = 15.0;
 \t\t\t\tMARKETING_VERSION = 0.1.0;
 \t\t\t\tPRODUCT_BUNDLE_IDENTIFIER = app.mdirx.mac;
 \t\t\t\tPRODUCT_NAME = "$(TARGET_NAME)";
-\t\t\t\tSWIFT_EMIT_LOC_STRINGS = YES;
 \t\t\t\tSWIFT_STRICT_CONCURRENCY = complete;
 \t\t\t\tSWIFT_VERSION = 6.0;
 \t\t\t\tCONFIGURATION_BUILD_DIR = "$(SRCROOT)/dist";
+\t\t\t\tCONFIGURATION_TEMP_DIR = "$(SRCROOT)/dist/Build/Intermediates.noindex";
 \t\t\t}};
 \t\t\tname = Debug;
 \t\t}};
 \t\t{u['REL_APP']} /* Release */ = {{
 \t\t\tisa = XCBuildConfiguration;
 \t\t\tbuildSettings = {{
-\t\t\t\tASETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-\t\t\t\tCODE_SIGN_ENTITLEMENTS = MdirX/MdirX.entitlements;
+\t\t\t\tASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+\t\t\t\tCODE_SIGN_ENTITLEMENTS = "MdirX/MdirX.entitlements";
+\t\t\t\tCODE_SIGN_IDENTITY = "-";
 \t\t\t\tCODE_SIGN_STYLE = Automatic;
-\t\t\t\tCOMBINE_HIDPI_IMAGES = YES;
 \t\t\t\tCURRENT_PROJECT_VERSION = 1;
-\t\t\t\tDEAD_CODE_STRIPPING = YES;
 \t\t\t\tDEVELOPMENT_TEAM = "";
 \t\t\t\tENABLE_HARDENED_RUNTIME = YES;
-\t\t\t\tENABLE_PREVIEWS = NO;
 \t\t\t\tGENERATE_INFOPLIST_FILE = YES;
-\t\t\t\tINFOPLIST_KEY_CFBundleDisplayName = MdirX;
 \t\t\t\tINFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-\t\t\t\tLD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../Frameworks");
+\t\t\t\tINFOPLIST_KEY_LSMinimumSystemVersion = 15.0;
+\t\t\t\tINFOPLIST_KEY_NSHumanReadableCopyright = "";
 \t\t\t\tARCHS = (arm64, x86_64);
 \t\t\t\tMACOSX_DEPLOYMENT_TARGET = 15.0;
 \t\t\t\tMARKETING_VERSION = 0.1.0;
 \t\t\t\tPRODUCT_BUNDLE_IDENTIFIER = app.mdirx.mac;
 \t\t\t\tPRODUCT_NAME = "$(TARGET_NAME)";
-\t\t\t\tSWIFT_EMIT_LOC_STRINGS = YES;
 \t\t\t\tSWIFT_STRICT_CONCURRENCY = complete;
 \t\t\t\tSWIFT_VERSION = 6.0;
 \t\t\t\tCONFIGURATION_BUILD_DIR = "$(SRCROOT)/dist";
+\t\t\t\tCONFIGURATION_TEMP_DIR = "$(SRCROOT)/dist/Build/Intermediates.noindex";
 \t\t\t}};
 \t\t\tname = Release;
 \t\t}};
@@ -632,7 +536,7 @@ pbx = f"""// !$*UTF8*$!
 \t\t\t\tPRODUCT_NAME = "$(TARGET_NAME)";
 \t\t\t\tSWIFT_STRICT_CONCURRENCY = complete;
 \t\t\t\tSWIFT_VERSION = 6.0;
-\t\t\t\tTEST_HOST = "$(BUILT_PRODUCTS_DIR)/MdirX.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MdirX";
+\t\t\t\tTEST_HOST = "$(BUILT_PRODUCTS_DIR)/MdirX.app/Contents/MacOS/MdirX";
 \t\t\t}};
 \t\t\tname = Debug;
 \t\t}};
@@ -651,7 +555,7 @@ pbx = f"""// !$*UTF8*$!
 \t\t\t\tPRODUCT_NAME = "$(TARGET_NAME)";
 \t\t\t\tSWIFT_STRICT_CONCURRENCY = complete;
 \t\t\t\tSWIFT_VERSION = 6.0;
-\t\t\t\tTEST_HOST = "$(BUILT_PRODUCTS_DIR)/MdirX.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MdirX";
+\t\t\t\tTEST_HOST = "$(BUILT_PRODUCTS_DIR)/MdirX.app/Contents/MacOS/MdirX";
 \t\t\t}};
 \t\t\tname = Release;
 \t\t}};
@@ -735,21 +639,27 @@ pbx = f"""// !$*UTF8*$!
 \t\t\t}};
 \t\t\tname = Release;
 \t\t}};
-{endsec("XCBuildConfiguration")}
+/* End XCBuildConfiguration section */
 
-{sec("XCConfigurationList")}
+/* Begin XCConfigurationList section */
 \t\t{u['ACFG']} = {{isa = XCConfigurationList; buildConfigurations = ({u['DBG_APP']}, {u['REL_APP']}); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; }};
 \t\t{u['TCFG']} = {{isa = XCConfigurationList; buildConfigurations = ({u['DBG_TEST']}, {u['REL_TEST']}); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; }};
 \t\t{u['UTCFG']} = {{isa = XCConfigurationList; buildConfigurations = ({u['DBG_UIT']}, {u['REL_UIT']}); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; }};
 \t\t{u['PCFG']} = {{isa = XCConfigurationList; buildConfigurations = ({u['DBG_PROJ']}, {u['REL_PROJ']}); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; }};
-{endsec("XCConfigurationList")}
+/* End XCConfigurationList section */
 
 \t}};
 \trootObject = {u['PROJECT']} /* Project object */;
 }}
 """
 
-root = Path(__file__).resolve().parents[1]
-out = root / "MdirX.xcodeproj" / "project.pbxproj"
+
+out = ROOT / "MdirX.xcodeproj" / "project.pbxproj"
 out.write_text(pbx, encoding="utf-8")
-print(f"Wrote {out}")
+print(
+    f"Wrote {out}\n"
+    f"  app src: {len(app_files)} files\n"
+    f"  unit test: {len(unit_test_files)} files\n"
+    f"  ui test: {len(ui_test_files)} files\n"
+    f"  groups: {len(group_dirs_sorted)} directories"
+)
