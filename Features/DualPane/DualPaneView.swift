@@ -110,17 +110,8 @@ struct DualPaneView: View {
         // 편집 모달 활성 시 모든 키를 TextField에 양보
         guard session.current.editing == nil else { return .ignored }
 
-        // 주소 입력 모드: Esc로 취소, ⌘L 재진입만 처리. 나머지는 TextField로
+        // 주소 popover 활성 시 전역 단축키는 popover/TextField가 처리하도록 양보
         if session.current.addressEditing {
-            if press.key == .escape {
-                session.current.cancelAddressEditing()
-                return .handled
-            }
-            let qwerty = KoreanShortcutNormalizer.qwertyCharacter(for: press)
-            if qwerty == "l", press.modifiers.contains(.command) {
-                session.current.beginAddressEditing()
-                return .handled
-            }
             return .ignored
         }
 

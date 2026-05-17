@@ -9,29 +9,20 @@ struct PaneHeaderView: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            if state.addressEditing {
-                AddressBarView(
-                    state: state,
-                    fs: fs,
-                    pathHistory: pathHistory,
-                    onNavigate: { await state.submitAddressDraft(via: fs) }
-                )
-            } else {
-                BreadcrumbView(
-                    currentURL: state.currentURL,
-                    mountedVolumes: state.mountedVolumes,
-                    paneSlot: state.slot,
-                    onTap: onSegmentTap,
-                    onPathBarDoubleClick: {
-                        state.beginAddressEditing()
-                    }
-                )
-                .frame(maxWidth: .infinity, alignment: .leading)
+            BreadcrumbView(
+                currentURL: state.currentURL,
+                mountedVolumes: state.mountedVolumes,
+                paneSlot: state.slot,
+                onTap: onSegmentTap,
+                onPathBarDoubleClick: {
+                    openAddressPopover()
+                }
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-                PathHistoryMenuButton(pane: state.slot, pathHistory: pathHistory) { url in
-                    Task {
-                        await state.navigate(to: url, via: fs)
-                    }
+            PathHistoryMenuButton(pane: state.slot, pathHistory: pathHistory) { url in
+                Task {
+                    await state.navigate(to: url, via: fs)
                 }
             }
         }
@@ -43,6 +34,27 @@ struct PaneHeaderView: View {
         .onTapGesture {
             onActivate()
         }
+        .popover(
+            isPresented: Binding(
+                get: { state.addressEditing },
+                set: { open in if !open { state.cancelAddressEditing() } }
+            ),
+            attachmentAnchor: .point(.bottom),
+            arrowEdge: .top
+        ) {
+            AddressPopoverView(
+                state: state,
+                fs: fs,
+                onClose: { state.cancelAddressEditing() }
+            )
+        }
         .accessibilityIdentifier("pane.\(state.slot.rawValue).header")
+    }
+
+    private func openAddressPopover() {
+        let items = (try? pathHistory.menuURLs(for: state.slot)) ?? (frequent: [], recent: [])
+        state.beginAddressEditing(
+            items: AddressListItems(frequent: items.frequent, recent: items.recent)
+        )
     }
 }

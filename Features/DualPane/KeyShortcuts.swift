@@ -19,7 +19,7 @@ struct LetterShortcut: Sendable {
 enum DualPaneShortcuts {
     /// 활성 패널 단축키 (편집 모달/주소 입력 중에는 무시됨)
     static let letterShortcuts: [LetterShortcut] = [
-        .init(qwertyChar: "l", modifiers: .command, action: { $0.current.beginAddressEditing() }),
+        .init(qwertyChar: "l", modifiers: .command, action: { $0.openAddressPopoverForActivePane() }),
         .init(qwertyChar: "u", modifiers: .option, action: { $0.current.selectAllToggle() }),
         .init(qwertyChar: "a", modifiers: .command, action: { $0.current.selectAllToggle() }),
         .init(qwertyChar: "k", modifiers: .option, action: { $0.current.requestNewFolder() }),

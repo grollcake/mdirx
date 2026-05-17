@@ -28,3 +28,4 @@
 | [0517-1750-shortcuts-broken-in-korean-ime.done.md](0517-1750-shortcuts-broken-in-korean-ime.done.md) | 2026-05-17 17:50<br>2026-05-17 18:10 | done | ✅ |
 | [0517-1815-codebase-refactor-and-requirements.done.md](0517-1815-codebase-refactor-and-requirements.done.md) | 2026-05-17 18:15<br>2026-05-17 18:25 | done | ✅ |
 | [0517-1830-pbxgen-autoscan-and-keybinding-table.done.md](0517-1830-pbxgen-autoscan-and-keybinding-table.done.md) | 2026-05-17 18:30<br>2026-05-17 18:55 | done | ✅ |
+| [0517-1905-address-popover.done.md](0517-1905-address-popover.done.md) | 2026-05-17 19:05<br>2026-05-17 19:40 | done | ✅ |

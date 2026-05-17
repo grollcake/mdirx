@@ -14,6 +14,7 @@ final class BrowserSession {
     var activePane: ActivePane = .left
     let fs = FileSystemActor()
     private var didAttachPathHistory = false
+    private var pathHistoryStore: PathHistoryStore? = nil
 
     init() {
         let home = FileManager.default.homeDirectoryForCurrentUser
@@ -36,12 +37,25 @@ final class BrowserSession {
         if didAttachPathHistory { return }
         didAttachPathHistory = true
         let store = PathHistoryStore(modelContext: modelContext)
+        pathHistoryStore = store
         left.onPathVisited = { url in
             try? store.recordVisit(to: url, pane: .left)
         }
         right.onPathVisited = { url in
             try? store.recordVisit(to: url, pane: .right)
         }
+    }
+
+    /// ⌘L 진입점: 활성 패널 popover를 열고 히스토리 리스트를 한 번 fetch해 캐시.
+    func openAddressPopoverForActivePane() {
+        let items: AddressListItems
+        if let store = pathHistoryStore,
+           let raw = try? store.menuURLs(for: current.slot) {
+            items = AddressListItems(frequent: raw.frequent, recent: raw.recent)
+        } else {
+            items = .empty
+        }
+        current.beginAddressEditing(items: items)
     }
 
     private static func directoryURL(from path: String?) -> URL? {

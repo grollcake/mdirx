@@ -25,6 +25,14 @@ final class PaneState {
     var addressError: String? = nil
     var addressFocusToken: Int = 0
 
+    // popover 히스토리 리스트 ↓키 탐색용
+    var addressListItems: AddressListItems = .empty
+    var addressListFocusIndex: Int? = nil   // nil = TextField focus, ≥0 = list focus
+
+    var addressListFlat: [URL] {
+        addressListItems.frequent + addressListItems.recent
+    }
+
     init(slot: PaneSlot, initialURL: URL) {
         self.slot = slot
         self.currentURL = initialURL
@@ -289,17 +297,21 @@ final class PaneState {
 
     // MARK: - Address bar
 
-    func beginAddressEditing() {
+    func beginAddressEditing(items: AddressListItems = .empty) {
         addressEditing = true
         addressDraft = currentURL.path
         addressError = nil
         addressFocusToken &+= 1
+        addressListItems = items
+        addressListFocusIndex = nil
     }
 
     func cancelAddressEditing() {
         addressEditing = false
         addressDraft = ""
         addressError = nil
+        addressListItems = .empty
+        addressListFocusIndex = nil
     }
 
     func submitAddressDraft(via fs: FileSystemActor) async {
@@ -311,6 +323,39 @@ final class PaneState {
             await navigate(to: url, via: fs)
             cancelAddressEditing()
         }
+    }
+
+    /// TextField에 포커스가 있을 때 ↓키 → 리스트 첫 항목.
+    /// 리스트가 비어 있으면 false 반환(호출자가 키를 처리하지 않음).
+    @discardableResult
+    func focusListFirst() -> Bool {
+        guard !addressListFlat.isEmpty else { return false }
+        addressListFocusIndex = 0
+        return true
+    }
+
+    func focusListNext() {
+        let last = addressListFlat.count - 1
+        guard last >= 0 else { return }
+        let cur = addressListFocusIndex ?? -1
+        addressListFocusIndex = min(last, cur + 1)
+    }
+
+    /// 리스트 첫 항목에서 ↑ → TextField 복귀(nil). 그 외엔 한 칸 위로.
+    func focusListPrevious() {
+        guard let cur = addressListFocusIndex else { return }
+        addressListFocusIndex = cur <= 0 ? nil : cur - 1
+    }
+
+    func focusTextField() {
+        addressListFocusIndex = nil
+    }
+
+    /// 현재 highlight된 리스트 항목 URL. TextField focus거나 인덱스가 범위 밖이면 nil.
+    var addressListFocusedURL: URL? {
+        guard let idx = addressListFocusIndex,
+              addressListFlat.indices.contains(idx) else { return nil }
+        return addressListFlat[idx]
     }
 
     // MARK: - Name Editing
@@ -402,6 +447,13 @@ enum NameEditingMode: Equatable, Identifiable {
         case .newFile:       return "newFile"
         }
     }
+}
+
+struct AddressListItems: Equatable {
+    var frequent: [URL]
+    var recent: [URL]
+
+    static let empty = AddressListItems(frequent: [], recent: [])
 }
 
 enum PaneRestore {
