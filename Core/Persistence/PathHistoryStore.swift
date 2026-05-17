@@ -63,7 +63,9 @@ struct PathHistoryStore {
             }
             .prefix(frequentLimit)
         let frequentPaths = Set(frequent.map(\.path))
-        let frequentURLs = frequent.map { URL(fileURLWithPath: $0.path, isDirectory: true) }
+        let frequentURLs = frequent
+            .sorted { $0.path.localizedCaseInsensitiveCompare($1.path) == .orderedAscending }
+            .map { URL(fileURLWithPath: $0.path, isDirectory: true) }
         let recent = entries
             .filter { !frequentPaths.contains($0.path) }
             .sorted { $0.visitedAt > $1.visitedAt }

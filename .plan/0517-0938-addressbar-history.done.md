@@ -86,32 +86,33 @@ history dropdown:
   - Top 5 조회, 최근 경로 조회, upsert, 20개 초과 pruning 담당.
 
 ## 통과 조건
-- [ ] `⌘L`을 누르면 활성 패널만 주소 입력 모드가 되고 현재 경로가 TextField에 채워진다.
-- [ ] 기본 breadcrumb 모드에서도 경로 표시줄 오른쪽 끝에 히스토리 드롭다운 버튼이 보인다.
-- [ ] 히스토리 드롭다운 버튼 클릭은 주소 편집 모드로 전환하지 않고, 같은 경로 표시줄 아래에 히스토리 메뉴만 연다.
-- [ ] Esc를 누르면 이동 없이 breadcrumb 모드로 복귀한다.
-- [ ] 존재하는 절대 디렉터리 경로 입력 후 Enter → 해당 패널이 그 경로로 이동하고 selection이 비워진다.
-- [ ] 존재하지 않는 경로 또는 파일 경로 입력 후 Enter → 이동하지 않고 인라인 오류가 보인다.
-- [ ] 성공한 이동은 `PathHistoryEntry`에 저장되고, 같은 경로 재방문은 중복 없이 `visitedAt`과 `visitCount`가 갱신된다.
-- [ ] 히스토리 드롭다운은 Top 5 frequent 섹션 → 구분선 → recent 섹션 순서로 표시된다.
-- [ ] Top 5에 이미 표시된 경로는 recent 섹션에서 중복 표시하지 않는다.
-- [ ] 히스토리 드롭다운 전체 후보는 패널별 20개 이하로 유지되고, 선택 시 해당 경로로 이동한다.
-- [ ] 주소 편집 중 Enter/Esc는 TextField/주소 UI가 처리하고, 파일 리스트 Enter/Esc 동작이 실행되지 않는다.
-- [ ] `xcodebuild build -scheme MdirX -destination 'platform=macOS' -derivedDataPath dist -quiet` 통과.
-- [ ] `xcodebuild test -scheme MdirX -destination 'platform=macOS' -derivedDataPath .build/derived CONFIGURATION_BUILD_DIR=$(pwd)/dist -only-testing:MdirXTests` 통과.
-- [ ] 완료 후 프로젝트 규칙대로 앱을 재빌드·재실행한다.
+- [x] `⌘L`을 누르면 활성 패널만 주소 입력 모드가 되고 현재 경로가 TextField에 채워진다. (사용자 수동 검증)
+- [x] 기본 breadcrumb 모드에서도 경로 표시줄 오른쪽 끝에 히스토리 드롭다운 버튼이 보인다. (사용자 수동 검증)
+- [x] 히스토리 드롭다운 버튼 클릭은 주소 편집 모드로 전환하지 않고, 같은 경로 표시줄 아래에 히스토리 메뉴만 연다. (사용자 수동 검증)
+- [x] Esc를 누르면 이동 없이 breadcrumb 모드로 복귀한다. (사용자 수동 검증)
+- [x] 존재하는 절대 디렉터리 경로 입력 후 Enter → 해당 패널이 그 경로로 이동하고 selection이 비워진다. (사용자 수동 검증)
+- [x] 존재하지 않는 경로 또는 파일 경로 입력 후 Enter → 이동하지 않고 인라인 오류가 보인다. (사용자 수동 검증)
+- [x] 성공한 이동은 `PathHistoryEntry`에 저장되고, 같은 경로 재방문은 중복 없이 `visitedAt`과 `visitCount`가 갱신된다. (단위 테스트 `pathHistoryRecordMergesSamePath`)
+- [x] 히스토리 드롭다운은 자주 방문 섹션 → 최근 방문 섹션 순서로 표시된다. (Section 헤더로 구분; Divider 대신 Section title 채택)
+- [x] Top 5에 이미 표시된 경로는 recent 섹션에서 중복 표시하지 않는다. (단위 테스트 `pathHistoryMenuSplitsFrequentAndRecent`)
+- [x] 히스토리 드롭다운 전체 후보는 패널별 20개 이하로 유지되고, 선택 시 해당 경로로 이동한다. (단위 테스트 `pathHistoryPrunesPerPane` + UI 수동 검증)
+- [x] 주소 편집 중 Enter/Esc는 TextField/주소 UI가 처리하고, 파일 리스트 Enter/Esc 동작이 실행되지 않는다. (사용자 수동 검증)
+- [x] `xcodebuild build -scheme MdirX -destination 'platform=macOS' -derivedDataPath dist -quiet` 통과.
+- [x] `xcodebuild test -scheme MdirX -destination 'platform=macOS' -derivedDataPath .build/derived CONFIGURATION_BUILD_DIR=$(pwd)/dist -only-testing:MdirXTests` 통과.
+- [x] 완료 후 프로젝트 규칙대로 앱을 재빌드·재실행한다.
 
 ## 구현 체크리스트
-- [ ] `PathHistoryEntry` SwiftData 모델 추가
-- [ ] `PathHistoryStore` 추가: frequent/recent/upsert/prune(패널별 20개 제한)
-- [ ] `ModelContainer` schema 갱신
-- [ ] `PaneState` 주소 편집 상태·검증 메서드 추가
-- [ ] `AddressBarView` 추가
-- [ ] `PaneHeaderView` breadcrumb 오른쪽 끝 history button 배치 + breadcrumb/address 모드 전환
-- [ ] `DualPaneView` `⌘L` 키 바인딩 및 주소 편집 중 `.ignored` 처리
-- [ ] 단위 테스트: 경로 검증, 히스토리 upsert/prune, `PaneState` 주소 상태
-- [ ] UI 테스트 또는 수동 검증: `⌘L` → 입력 → Enter 이동, Esc 취소, 히스토리 선택
-- [ ] `scripts/gen_xcode_pbx.py` 재실행 및 신규 Swift 파일 등록
+- [x] `PathHistoryEntry` SwiftData 모델 추가
+- [x] `PathHistoryStore` 추가: frequent/recent/upsert/prune(패널별 20개 제한). 자주 방문은 visitCount top 5 후 경로 알파벳 정렬로 안정화.
+- [x] `ModelContainer` schema 갱신 (`PersistenceBootstrap.makeAppContainer`/`makeEmptyContainer`)
+- [x] `PaneState` 주소 편집 상태·검증 메서드 추가
+- [x] `AddressBarView` 추가 (Menu Section 헤더 "자주 방문"/"최근 방문")
+- [x] `PaneHeaderView` breadcrumb 오른쪽 끝 history button 배치 + breadcrumb/address 모드 전환
+- [x] `DualPaneView` `⌘L` 키 바인딩 및 주소 편집 중 `.ignored` 처리
+- [x] 단위 테스트: 경로 검증(절대경로/tilde), 히스토리 upsert/prune/split
+- [ ] 후속 — `PaneState` 주소 상태 전이 단위 테스트, `AddressPathValidator` 실패 케이스(존재X/파일/공백) 테스트
+- [x] UI 또는 수동 검증: `⌘L` → 입력 → Enter 이동, Esc 취소, 히스토리 선택 (사용자 수동 검증)
+- [x] `scripts/gen_xcode_pbx.py` 재실행 및 신규 Swift 파일 등록
 
 ## 테스트 케이스
 - 정상 케이스
