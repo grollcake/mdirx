@@ -163,3 +163,40 @@ func reloadDropsMissingSelections() async throws {
     await pane.load(via: fs)
     #expect(!pane.selection.contains(victim.id))
 }
+
+@Test
+@MainActor
+func operationItemURLsUseSelectionWhenPresent() async throws {
+    let (pane, base, selectable) = try await makePopulatedPane()
+    defer { try? FileManager.default.removeItem(at: base) }
+
+    pane.cursorID = selectable[0].id
+    pane.selection = Set([selectable[1].id, selectable[2].id])
+
+    #expect(pane.operationItemURLs() == [selectable[1].url, selectable[2].url])
+}
+
+@Test
+@MainActor
+func operationItemURLsFallbackToCursorWhenSelectionIsEmpty() async throws {
+    let (pane, base, selectable) = try await makePopulatedPane()
+    defer { try? FileManager.default.removeItem(at: base) }
+
+    pane.cursorID = selectable[1].id
+    pane.selection = []
+
+    #expect(pane.operationItemURLs() == [selectable[1].url])
+}
+
+@Test
+@MainActor
+func operationItemURLsIgnoreParentLinkCursor() async throws {
+    let (pane, base, _) = try await makePopulatedPane()
+    defer { try? FileManager.default.removeItem(at: base) }
+    let parent = try #require(pane.entries.first(where: { $0.isParentLink }))
+
+    pane.cursorID = parent.id
+    pane.selection = []
+
+    #expect(pane.operationItemURLs().isEmpty)
+}

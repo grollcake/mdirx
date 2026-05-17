@@ -212,6 +212,18 @@ final class PaneState {
         selectableIDs.contains(id)
     }
 
+    func operationItemURLs() -> [URL] {
+        let allowed = Set(selectableIDs)
+        let selected = selection.filter { allowed.contains($0) }
+        if !selected.isEmpty {
+            return selectableEntries
+                .map(\.url)
+                .filter { selected.contains($0) }
+        }
+        guard let cur = cursorID, allowed.contains(cur) else { return [] }
+        return entries.first(where: { $0.id == cur }).map { [$0.url] } ?? []
+    }
+
     func toggleAtCursor() {
         guard let cur = cursorID, isSelectable(cur) else { return }
         if selection.contains(cur) {

@@ -128,11 +128,7 @@ struct DualPaneView: View {
                     return .handled
                 }
             }
-            // F2 = rename, ⌥K = new folder, ⌃N = new file
-            if press.key == KeyEquivalent(Character(Unicode.Scalar(0xF705)!)), press.modifiers.isEmpty {
-                session.current.requestRename()
-                return .handled
-            }
+            // ⌥K = new folder, ⌃N = new file (F2/F5/F6은 아래 keys: 오버로드에서 처리)
             if press.key == KeyEquivalent("k"), press.modifiers.contains(.option) {
                 session.current.requestNewFolder()
                 return .handled
@@ -142,6 +138,26 @@ struct DualPaneView: View {
                 return .handled
             }
             return .ignored
+        }
+        .onKeyPress(keys: [
+            KeyEquivalent(Character(Unicode.Scalar(0xF705)!)), // F2
+            KeyEquivalent(Character(Unicode.Scalar(0xF708)!)), // F5
+            KeyEquivalent(Character(Unicode.Scalar(0xF709)!)), // F6
+        ]) { press in
+            guard session.current.editing == nil else { return .ignored }
+            switch press.key.character.unicodeScalars.first?.value {
+            case 0xF705:
+                session.current.requestRename()
+                return .handled
+            case 0xF708:
+                Task { await session.copySelectionToOtherPane() }
+                return .handled
+            case 0xF709:
+                Task { await session.moveSelectionToOtherPane() }
+                return .handled
+            default:
+                return .ignored
+            }
         }
         .task {
             await session.bootstrap()

@@ -51,3 +51,8 @@
 - [swiftui/onkeypress-consumed-by-parent-when-sheet-is-open.md](swiftui/onkeypress-consumed-by-parent-when-sheet-is-open.md) — sheet 열려 있어도 부모 `.onKeyPress` 가 키를 먼저 소비. `.ignored` 반환으로 sheet 에 전달.
 - [xcode-spm/test-host-deriveddata-mismatch-with-custom-build-dir.md](xcode-spm/test-host-deriveddata-mismatch-with-custom-build-dir.md) — `CONFIGURATION_BUILD_DIR=dist` 사용 시 build·test 를 같은 `-derivedDataPath` 로 묶지 않으면 TEST_HOST 불일치.
 - [xcode-spm/gen-pbxproj-literal-tab-vs-actual-tab.md](xcode-spm/gen-pbxproj-literal-tab-vs-actual-tab.md) — `gen_xcode_pbx.py` 에 리터럴 `\t` 와 실제 탭이 혼용됨. Edit 툴 매칭 실패 시 `repr()` 확인 후 Python 스크립트로 치환.
+- [swiftui/onkeypress-action-closure-skips-function-keys.md](swiftui/onkeypress-action-closure-skips-function-keys.md) — `.onKeyPress(action:)` 클로저는 펑션 키(F1~F12)를 라우팅 안 함. `.onKeyPress(keys: [...])` 명시 등록 오버로드 사용.
+
+## 메타 노트
+
+- **키 바인딩은 단위 테스트로 잡히지 않는다.** 빌드·단위 테스트가 모두 통과해도 실제 키 입력이 `onKeyPress`까지 도달 안 할 수 있다. 새 단축키를 `done` 처리하기 전 **사용자가 직접 한 번 눌러 동작을 확인**하는 절차를 통과 조건에 포함시킬 것. (사례: F2 rename은 이번 F5/F6 작업 시 사용자가 처음 눌러보기 전까지 `done` 상태로 깨져 있었다.)

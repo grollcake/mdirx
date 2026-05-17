@@ -56,4 +56,40 @@ final class FileListNavigationTests: XCTestCase {
         rowBBBLeft.click()
         XCTAssertTrue(leftPane.isSelected)
     }
+
+    func testF5CopiesAndF6MovesBetweenPanes() throws {
+        let leftDir = tmp.appendingPathComponent("aaa", isDirectory: true)
+        let rightDir = tmp.appendingPathComponent("bbb", isDirectory: true)
+        try Data("copy".utf8).write(to: leftDir.appendingPathComponent("copy.txt"))
+        try Data("move".utf8).write(to: leftDir.appendingPathComponent("move.txt"))
+
+        let app = XCUIApplication()
+        app.launchEnvironment["MDIRX_INITIAL_LEFT_URL"] = leftDir.path
+        app.launchEnvironment["MDIRX_INITIAL_RIGHT_URL"] = rightDir.path
+        app.launch()
+
+        let leftPane = app.descendants(matching: .any).matching(identifier: "pane.left").firstMatch
+        XCTAssertTrue(leftPane.waitForExistence(timeout: 8))
+        app.windows.firstMatch.click()
+
+        let copyRow = app.descendants(matching: .any).matching(identifier: "pane.left.row.copy.txt").firstMatch
+        XCTAssertTrue(copyRow.waitForExistence(timeout: 4))
+        copyRow.click()
+        app.typeKey("\u{F708}", modifierFlags: [])
+
+        let copiedRight = app.descendants(matching: .any).matching(identifier: "pane.right.row.copy.txt").firstMatch
+        XCTAssertTrue(copiedRight.waitForExistence(timeout: 4))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: leftDir.appendingPathComponent("copy.txt").path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: rightDir.appendingPathComponent("copy.txt").path))
+
+        let moveRow = app.descendants(matching: .any).matching(identifier: "pane.left.row.move.txt").firstMatch
+        XCTAssertTrue(moveRow.waitForExistence(timeout: 4))
+        moveRow.click()
+        app.typeKey("\u{F709}", modifierFlags: [])
+
+        let movedRight = app.descendants(matching: .any).matching(identifier: "pane.right.row.move.txt").firstMatch
+        XCTAssertTrue(movedRight.waitForExistence(timeout: 4))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: leftDir.appendingPathComponent("move.txt").path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: rightDir.appendingPathComponent("move.txt").path))
+    }
 }

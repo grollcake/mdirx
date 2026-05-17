@@ -15,7 +15,12 @@ final class BrowserSession {
 
     init() {
         let home = FileManager.default.homeDirectoryForCurrentUser
-        if let testRoot = ProcessInfo.processInfo.environment["MDIRX_TEST_ROOT"], !testRoot.isEmpty {
+        let env = ProcessInfo.processInfo.environment
+        if let initialLeft = Self.directoryURL(from: env["MDIRX_INITIAL_LEFT_URL"]),
+           let initialRight = Self.directoryURL(from: env["MDIRX_INITIAL_RIGHT_URL"]) {
+            left = PaneState(slot: .left, initialURL: initialLeft)
+            right = PaneState(slot: .right, initialURL: initialRight)
+        } else if let testRoot = env["MDIRX_TEST_ROOT"], !testRoot.isEmpty {
             let u = URL(fileURLWithPath: testRoot, isDirectory: true)
             left = PaneState(slot: .left, initialURL: u)
             right = PaneState(slot: .right, initialURL: u)
@@ -25,8 +30,22 @@ final class BrowserSession {
         }
     }
 
+    private static func directoryURL(from path: String?) -> URL? {
+        guard let path, !path.isEmpty else { return nil }
+        let url = URL(fileURLWithPath: path, isDirectory: true)
+        var isDir: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir), isDir.boolValue else {
+            return nil
+        }
+        return url
+    }
+
     var current: PaneState {
         activePane == .left ? left : right
+    }
+
+    var other: PaneState {
+        activePane == .left ? right : left
     }
 
     func toggleActive() {
@@ -43,6 +62,37 @@ final class BrowserSession {
 
     func syncRightToLeft() async {
         await left.navigate(to: right.currentURL, via: fs)
+    }
+
+    func copySelectionToOtherPane() async {
+        await transferSelectionToOtherPane(move: false)
+    }
+
+    func moveSelectionToOtherPane() async {
+        await transferSelectionToOtherPane(move: true)
+    }
+
+    private func transferSelectionToOtherPane(move: Bool) async {
+        let source = current
+        let destination = other
+        let urls = source.operationItemURLs()
+        guard !urls.isEmpty else { return }
+
+        do {
+            if move {
+                _ = try await fs.moveItems(urls, to: destination.currentURL)
+            } else {
+                _ = try await fs.copyItems(urls, to: destination.currentURL)
+            }
+            source.error = nil
+            destination.error = nil
+            async let sourceReload: Void = source.load(via: fs)
+            async let destinationReload: Void = destination.load(via: fs)
+            _ = await (sourceReload, destinationReload)
+        } catch {
+            source.error = (error as? LocalizedError)?.errorDescription
+                ?? error.localizedDescription
+        }
     }
 
     func bootstrap() async {

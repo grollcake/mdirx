@@ -5,8 +5,7 @@ func splitFileNameExtension(_ name: String) -> (String, String) {
     if name == "." || name == ".." { return (name, "") }
     guard let dot = name.lastIndex(of: ".") else { return (name, "") }
     if dot == name.startIndex {
-        let ext = String(name[name.index(after: dot)...]).lowercased()
-        return ("", ext)
+        return (name, "")
     }
     let base = String(name[..<dot])
     let ext = String(name[name.index(after: dot)...]).lowercased()
@@ -108,6 +107,45 @@ actor FileSystemActor {
         let dest = url.deletingLastPathComponent().appendingPathComponent(newName)
         try FileManager.default.moveItem(at: url, to: dest)
         return dest
+    }
+
+    func copyItems(_ urls: [URL], to destinationDirectory: URL) async throws -> [URL] {
+        let destinations = try preflightDestinations(for: urls, in: destinationDirectory)
+        for (source, destination) in zip(urls, destinations) {
+            try FileManager.default.copyItem(at: source, to: destination)
+        }
+        return destinations
+    }
+
+    func moveItems(_ urls: [URL], to destinationDirectory: URL) async throws -> [URL] {
+        let destinations = try preflightDestinations(for: urls, in: destinationDirectory)
+        for (source, destination) in zip(urls, destinations) {
+            try FileManager.default.moveItem(at: source, to: destination)
+        }
+        return destinations
+    }
+
+    private func preflightDestinations(for urls: [URL], in destinationDirectory: URL) throws -> [URL] {
+        var isDir: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: destinationDirectory.path, isDirectory: &isDir), isDir.boolValue else {
+            throw NSError(
+                domain: NSCocoaErrorDomain,
+                code: NSFileNoSuchFileError,
+                userInfo: [NSLocalizedDescriptionKey: "대상 폴더를 찾을 수 없습니다"]
+            )
+        }
+
+        let destinations = urls.map { source in
+            destinationDirectory.appendingPathComponent(source.lastPathComponent)
+        }
+        for destination in destinations where FileManager.default.fileExists(atPath: destination.path) {
+            throw NSError(
+                domain: NSCocoaErrorDomain,
+                code: NSFileWriteFileExistsError,
+                userInfo: [NSLocalizedDescriptionKey: "같은 이름의 항목이 이미 있습니다: \(destination.lastPathComponent)"]
+            )
+        }
+        return destinations
     }
 
     func createDirectory(at parent: URL, name: String) async throws -> URL {

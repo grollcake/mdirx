@@ -22,3 +22,6 @@
 | [0516-2130-pane-layout-cleanup.done.md](0516-2130-pane-layout-cleanup.done.md) | 2026-05-16 21:30<br>2026-05-16 | done | ✅ |
 | [0516-2145-middle-column-path-sync-buttons.done.md](0516-2145-middle-column-path-sync-buttons.done.md) | 2026-05-16 21:45<br>2026-05-16 | done | ✅ |
 | [0516-2200-app-settings-json.done.md](0516-2200-app-settings-json.done.md) | 2026-05-16 22:00<br>2026-05-16 22:35 | done | ✅ |
+| [0517-0919-f5-f6-file-ops.done.md](0517-0919-f5-f6-file-ops.done.md) | 2026-05-17 09:19<br>2026-05-17 17:20 | done | ✅ |
+| [0517-0934-file-delete.todo.md](0517-0934-file-delete.todo.md) | 2026-05-17 09:34<br>— | todo | — |
+| [0517-0938-addressbar-history.todo.md](0517-0938-addressbar-history.todo.md) | 2026-05-17 09:38<br>— | todo | — |
