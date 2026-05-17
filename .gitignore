@@ -50,6 +50,7 @@ dist/CompilationCache.noindex/
 dist/Index.noindex/
 dist/ModuleCache.noindex/
 dist/SDKStatCaches.noindex/
+dist/*.swiftmodule/
 dist/*Tests.swiftmodule/
 dist/info.plist
 
